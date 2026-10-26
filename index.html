@@ -384,7 +384,7 @@ function exampleJob() {
   for (const [p, n, e, z, d] of pts) addPoint(s, { id: p, n, e, z, d });
   s.pairs = [["V1", "47005"], ["V4", "6004"], ["V5", "6002"], ["V6", "6001"], ["V7", "11"]].map(([v, c]) => ({ v, c, label: "", use: true }));
   s.adj.hm = "shiftrot"; s.adj.a = 3; s.adj.b = 1; s.adj.vm = "manual"; s.adj.vManual = "-0.08";
-  Object.assign(s.meta, { project: "Example Job", sub: "Control", range: "V1–V8", points: "V2 SIR w/ cap\nV3 chk hub/tac", decision: "Example only. Held V6 to 6001, rotated 6001/V4 to 6001/6004, split diff vertically." });
+  Object.assign(s.meta, { project: "Example Job", sub: "Control", range: "V1–V8", points: "V2 SIR w/ cap\nV3 chk hub/tac", decision: "Example only. Translation V6 to 6001, rotation of 6001/V4 onto 6001/6004, manual vertical translation of -0.08." });
   return s;
 }
 
@@ -404,7 +404,7 @@ function restore() {
 }
 
 // ---------- parsing ----------
-function parseText(text, order) {
+function parseText(text, order, pStart = 0) {
   const out = [], bad = [];
   text.split(/\r?\n/).forEach((line, i) => {
     const raw = line.trim();
@@ -412,7 +412,7 @@ function parseText(text, order) {
     let f = raw.includes(",") ? raw.split(",") : raw.includes("\t") ? raw.split("\t") : raw.split(/\s+/);
     f = f.map(x => x.trim());
     let p, n, e, z, d;
-    if (order === "NEZ") { [n, e, z] = f; p = "P" + (out.length + 1); d = f.slice(3).join(" "); }
+    if (order === "NEZ") { [n, e, z] = f; p = "P" + (pStart + out.length + 1); d = f.slice(3).join(" "); }
     else if (order === "PENZD") { [p, e, n, z] = f; d = f.slice(4).join(raw.includes(",") ? "," : " "); }
     else { [p, n, e, z] = f; d = f.slice(4).join(raw.includes(",") ? "," : " "); }
     if (!isFinite(parseFloat(n)) || !isFinite(parseFloat(e))) { if (i > 0 || out.length) bad.push(i + 1); return; }
@@ -420,6 +420,9 @@ function parseText(text, order) {
   });
   return { pts: out, bad };
 }
+
+// Next free number for made-up P# ids, so a second N, E, Z load doesn't overwrite the first
+function nextP() { return S.order.reduce((m, id) => { const k = /^P(\d+)$/.exec(id); return k ? Math.max(m, +k[1]) : m; }, 0); }
 
 async function parseCRD(buf) {
   const u8 = new Uint8Array(buf);
@@ -482,6 +485,7 @@ function parseBinaryCRD(u8) {
   for (const off of [-4, -8, 24, 28, 32, 36, 40, 44, 48, 52, 56]) {
     let good = 0;
     const sample = recs.slice(0, 50);
+    if (sample[0] + off < 0 || sample[0] + off + 4 > u8.length) continue;
     for (const k of sample) {
       const at = k + off; if (at < 0 || at + 4 > u8.length) continue;
       const v = dv.getInt32(at, true);
@@ -496,11 +500,12 @@ function parseBinaryCRD(u8) {
   return { pts, note: `Read ${pts.length} points from a binary .crd (point numbers from ${idSource}). Spot-check a few against Carlson's point list.` };
 }
 
-function loadScript(src) {
-  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("Could not load the SQLite reader. Check your internet connection, or load a .txt export.")); document.head.appendChild(s); });
+function loadScript(src, integrity) {
+  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; if (integrity) { s.integrity = integrity; s.crossOrigin = "anonymous"; } s.onload = res; s.onerror = () => rej(new Error("Could not load the SQLite reader. Check your internet connection, or load a .txt export.")); document.head.appendChild(s); });
 }
 async function parseSQLiteCRD(u8) {
-  if (!window.initSqlJs) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-asm.js");
+  // Pinned by hash so a changed CDN file is refused instead of run
+  if (!window.initSqlJs) await loadScript("https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-asm.js", "sha384-lJQGJ26r89i4hDPcMDnFg2BHiI4bG8U6LYvE+KO1QalxaV6JPstYbnO+7gKh0RwD");
   const SQL = await window.initSqlJs();
   const db = new SQL.Database(u8);
   const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table'")[0]?.values.map(r => r[0]) || [];
@@ -652,7 +657,7 @@ function solve() {
     else {
       res.m = To ? { n: To.n - B.n, e: To.e - B.e } : { n: 0, e: 0 };
       // A control point stays put; a VRS point moves with the translation before the rotation
-      const fixed = k => pairs.some(p => p.c === k) && !pairs.some(p => p.v === k);
+      const fixed = k => !pairs.some(p => p.v === k) && (pairs.some(p => p.c === k) || !/^V\d+$/i.test(k));
       const moved = (pt, k) => fixed(k) ? { n: pt.n, e: pt.e } : { n: pt.n + res.m.n, e: pt.e + res.m.e };
       const pvFixed = fixed(pvId), own = pvId === id(A.mBase);
       res.Q = moved(Pv, pvId);
@@ -718,7 +723,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "
 
 // ---------- plot ----------
 const MODE_HELP = {
-  none: "No horizontal transformation.",
+  none: "No horizontal adjustment.",
   shift: "Translation: moves every VRS point the same amount so one VRS point lands on its control point.",
   avg: "Translation by the average difference of the pairs ticked Fit. No rotation or scale.",
   shiftrot: "Translation onto one pair, then rotation about that control point so a second pair's bearing matches the control bearing.",
@@ -997,7 +1002,7 @@ $("ptFile").addEventListener("change", async ev => {
         const r = await parseCRD(await f.arrayBuffer());
         r.pts.forEach(p => addPoint(S, p)); msgs.push(`${f.name}: ${r.note}`);
       } else {
-        const r = parseText(await f.text(), S.fmt.order);
+        const r = parseText(await f.text(), S.fmt.order, nextP());
         r.pts.forEach(p => addPoint(S, p));
         msgs.push(`${f.name}: ${r.pts.length} points${r.bad.length ? `, skipped ${r.bad.length} unreadable line(s)` : ""}.`);
       }
@@ -1009,7 +1014,7 @@ $("ptFile").addEventListener("change", async ev => {
 });
 $("order").addEventListener("change", e => { S.fmt.order = e.target.value; persist(); });
 $("addPaste").addEventListener("click", () => {
-  const r = parseText($("paste").value, S.fmt.order);
+  const r = parseText($("paste").value, S.fmt.order, nextP());
   if (!r.pts.length) { toast("No points found. Check the column order."); return; }
   clearExample(); r.pts.forEach(p => addPoint(S, p)); $("paste").value = "";
   $("ptStatus").textContent = `Added ${r.pts.length} pasted points.`; $("ptStatus").dataset.msg = "1";
@@ -1054,10 +1059,21 @@ $("pairBody").addEventListener("input", e => {
   persist(); renderAdjOptions(); renderResults();
 });
 $("pairBody").addEventListener("click", e => { const d = e.target.closest("[data-del]"); if (!d) return; S.pairs.splice(+d.dataset.del, 1); fixAdjIdx(+d.dataset.del); changed(true); });
-function fixAdjIdx(removed) { for (const k of ["a", "b", "pivot", "vHold"]) { if (S.adj[k] > removed) S.adj[k]--; } }
+function fixAdjIdx(removed) {
+  const hit = [];
+  for (const k of ["a", "b", "pivot", "vHold"]) { if (+S.adj[k] === removed) { S.adj[k] = -1; hit.push(k); } else if (S.adj[k] > removed) S.adj[k]--; }
+  if (!hit.length) return;
+  const ps = activePairs(), zs = ps.filter(p => p.V.z != null && p.C.z != null);
+  if (S.adj.a === -1) S.adj.a = ps[0]?.i ?? 0;
+  if (S.adj.b === -1) S.adj.b = ps.find(p => p.i !== +S.adj.a)?.i ?? 0;
+  if (S.adj.pivot === -1) S.adj.pivot = ps[0]?.i ?? 0;
+  if (S.adj.vHold === -1) S.adj.vHold = zs[0]?.i ?? 0;
+  const used = (S.adj.hm === "shift" && hit.includes("a")) || (S.adj.hm === "shiftrot" && (hit.includes("a") || hit.includes("b"))) || (S.adj.hm === "fit" && hit.includes("pivot")) || (S.adj.vm === "hold" && hit.includes("vHold"));
+  if (used) setTimeout(() => toast("The adjustment was using that pair. It now uses another one, so check the Adjustment choices."), 0);
+}
 document.querySelectorAll("input[name=hm]").forEach(r => r.addEventListener("change", () => {
-  // Switching to Manual starts from the points the current option used
-  if (r.value === "manual" && R && R.seed && S.adj.hm !== "manual") Object.assign(S.adj, R.seed);
+  // Switching to Manual starts from the points the current option used, unless manual points are already filled in
+  if (r.value === "manual" && R && R.seed && S.adj.hm !== "manual" && !S.adj.mBase.trim()) Object.assign(S.adj, R.seed);
   S.adj.hm = r.value;
   const ps = activePairs();
   if (!ps.find(p => p.i === +S.adj.a)) S.adj.a = ps[0]?.i ?? 0;
@@ -1067,7 +1083,7 @@ document.querySelectorAll("input[name=hm]").forEach(r => r.addEventListener("cha
 }));
 document.querySelectorAll("input[name=vm]").forEach(r => r.addEventListener("change", () => {
   S.adj.vm = r.value;
-  const ps = activePairs(); if (!ps.find(p => p.i === +S.adj.vHold)) S.adj.vHold = ps[0]?.i ?? 0;
+  const ps = activePairs().filter(p => p.V.z != null && p.C.z != null); if (!ps.find(p => p.i === +S.adj.vHold)) S.adj.vHold = ps[0]?.i ?? 0;
   changed(true);
 }));
 const adjMap = { aA: "a", aB: "b", aPivot: "pivot", aFitScale: "fitScale", aBase: "mBase", aTo: "mTo", aPv: "mPivot", aRef: "mRef", aNew: "mNew", aMScale: "mScale", aVHold: "vHold", aVMan: "vManual" };
@@ -1112,6 +1128,7 @@ function download(name, text, type) {
   if (inFrame) $("printHint").hidden = false;
 }
 function csvText() {
+  if (!R || R.err.length) return null;
   const { hdp, vdp } = S.fmt, q = s => `"${String(s).replace(/"/g, '""')}"`;
   const lines = [["VRS", "Control", "Label", "Fit", "Bearing before", "Horiz before", "Vert before", "Bearing after", "Horiz after", "Vert after"].join(",")];
   for (const r of R.rows) lines.push([r.p.v, r.p.c, r.p.label, r.p.use ? "Y" : "N", bearing(r.b.az, r.b.h), fmt(r.b.h, hdp), fmt(r.b.v, vdp), R.hasAdj ? bearing(r.a.az, r.a.h) : "", R.hasAdj ? fmt(r.a.h, hdp) : "", R.hasAdj ? fmt(r.a.v, vdp) : ""].map(q).join(","));
@@ -1119,13 +1136,16 @@ function csvText() {
   return lines.join("\n");
 }
 $("copyCsv").addEventListener("click", () => {
-  const t = csvText();
+  const t = csvText(); if (t == null) { toast("Fix the adjustment settings first."); return; }
   navigator.clipboard.writeText(t).then(() => toast("Copied. Paste into Excel or an email.")).catch(() => { $("paste").value = t; toast("Copy was blocked. The CSV is in the paste box; select it there."); });
 });
-$("dlCsv").addEventListener("click", () => download(`${S.meta.project || "control-check"}.csv`, csvText(), "text/csv"));
+$("dlCsv").addEventListener("click", () => { const t = csvText(); if (t == null) { toast("Fix the adjustment settings first."); return; } download(`${S.meta.project || "control-check"}.csv`, t, "text/csv"); });
 $("dlPts").addEventListener("click", () => {
-  const ids = [...new Set(S.pairs.map(p => p.v).filter(id => S.points[id]))];
-  const txt = ids.map(id => { const p = R.T.apply(S.points[id]); return [id, p.n.toFixed(4), p.e.toFixed(4), p.z == null ? "" : p.z.toFixed(4), p.d].join(","); }).join("\n");
+  if (!R || R.err.length) { toast("Fix the adjustment settings first."); return; }
+  // Every VRS shot: the paired ones plus any other V# points (SIR, check hub, ...)
+  const ids = [...new Set([...S.pairs.map(p => p.v), ...S.order.filter(id => /^V\d+$/i.test(id))].filter(id => S.points[id]))];
+  const cell = t => /[",]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  const txt = ids.map(id => { const p = R.T.apply(S.points[id]); return [cell(id), p.n.toFixed(4), p.e.toFixed(4), p.z == null ? "" : p.z.toFixed(4), cell(p.d)].join(","); }).join("\n");
   download(`${S.meta.project || "control-check"}-adjusted-VRS.txt`, txt, "text/plain");
 });
 $("saveJob").addEventListener("click", () => download(`${S.meta.project || "control-check"}.vrscheck.json`, JSON.stringify(S, null, 1), "application/json"));
