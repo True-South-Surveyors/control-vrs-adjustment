@@ -189,4 +189,61 @@ ending with the "How we work on this repo" section, and fill in the About sectio
 
 ## About this project
 
-<!-- Fill in per project: what it does, who uses it, how to run it, how to test it. -->
+### VRS Control Check
+
+This repo hosts **VRS Control Check**, a single-page browser tool the crew uses to check surveyed VRS/GPS points against an engineer's control points and record which adjustment was applied. It is served on GitHub Pages from `index.html` on `main`, so anyone with the link can use it without a GitHub account. A merge to `main` goes live within a minute or two.
+
+#### Who uses it and why
+
+- The owner is Dakota, a surveyor. Field crews shoot the engineer's control monuments with VRS (network RTK). Those shots are stored as `V1`, `V2`, ... points.
+- The tool inverses each VRS point to its control point (bearing, horizontal distance, vertical difference = control − VRS). It then tests adjustments that bring the VRS points onto the engineer's control and prints a record sheet modeled on the crew's hand-written "Field Adjustments" sheet.
+- **The tool only reports adjustment parameters.** Crews apply the adjustment manually in Carlson Survey / AutoCAD. Never assume the tool writes coordinates back to a job.
+- A Carlson/AutoCAD add-in may come later, but the decision (Oct 2026) was a standalone web page.
+
+#### Client and job data rules
+
+- **This repo and its website are public.** Dakota chose this (Oct 2026) as an exception to the team's Private rule, because GitHub Pages on the free plan needs a public repo. Anyone can read every file and every commit. Never commit real job data: no `.crd` files, control `.txt`/`.csv` files, field sheets, client or project names, or real coordinates. The built-in example job (`exampleJob()`) uses real relative geometry moved to made-up base coordinates. Keep it that way.
+- The same goes for GitHub text: branch names, PR titles, PR descriptions and review comments must not name a client, job, job number, file name or sheet title. This repo has no automated client-data check, so before each push or post (steps 3, 6 and 8), read the diff and that text yourself and keep it generic (for example "fix rotation on record sheet", not a job name). Say in the approval comment that you checked.
+- `index.html` is internet-facing, so changes to it get the **Thorough** review. Changes to README wording only can be Light.
+
+#### Hard rules for the code
+
+- **Keep it one self-contained file.** Everything (HTML, CSS, JS) lives in `index.html`. The only external loads are Google Fonts (IBM Plex) and, only when a SQLite-style `.crd` is opened, `sql.js` 1.8.0 from cdnjs. Don't add a build step, framework, or backend.
+- **Nothing leaves the browser.** Files are read locally. State is saved to `localStorage` under the key `vrs-control-check-v1`. If you change the shape of the saved state, keep `restore()` tolerant of older saves, or bump the key.
+- **Naming:** Dakota wants the adjustment terms **Translation / Rotation / Scale** used everywhere in the UI and on the printed sheet. Don't write "shift", "rotate", or "transform" in user-facing text.
+- The company name on the sheet defaults to "True South Surveyors" (`DEFAULT_COMPANY`).
+
+#### What the tool does
+
+Page sections: **1 Points**, **2 Pairs**, **3 Adjustment**, **Results**, **Record details**, **Compare adjustments**, and a printable record sheet (print → Save as PDF).
+
+**Inputs**
+- PNEZD text/CSV (point, northing, easting, elevation, description). Other column orders can be selected.
+- Carlson `.crd` binary. The alphanumeric "New CRD Format2" layout (signature at byte 72) is decoded and verified against a real job: 104-byte header, then 66-byte records of N, E, Z (little-endian doubles), a 32-byte description, and a 10-byte NUL-padded point ID. Z = 0 means no elevation. Numeric-only and SQLite `.crd` variants use a best-guess reader (`parseBinaryCRD`, `parseSQLiteCRD`). If one fails on a real file, ask for a sample, and don't commit it.
+- Pairs are suggested automatically by nearest control point within 5 ft (`SUGGEST_FT`).
+
+**Horizontal adjustments** (`S.adj.hm`, solved in `solve()`)
+- Translation to one pair (hold a pair).
+- Translation (average of the pairs ticked Fit).
+- Translation + Rotation (translate onto one pair, then rotate about that control point so a second pair's bearing matches the control bearing).
+- Least-squares best fit, with optional Scale.
+- Manual by points: translation base point → translate-to point; an optional separate rotation base point (blank = same as the translation base); a reference bearing from the rotation base to a V#, and a new bearing to a control point; optional scale.
+
+**Vertical adjustments** (`S.adj.vm`): hold a pair, average, split the difference (`mid`), or manual.
+
+The UI help text for each mode lives in `MODE_HELP`.
+
+**Output:** residuals per pair before and after, a plot, a scenario comparison table, CSV download, and the record sheet. The sheet holds project, sub, date, by, point range, notes on the check hub and base pole, and the decision or reason the adjustment was chosen.
+
+#### Field conventions worth knowing
+
+- `V#` = raw VRS shots. `A#` = adjusted copies of `V#` made in Carlson. `D#` = temporary intermediate points.
+- Descriptions containing `BP` mark the base pole, and `HUB` (e.g. "CHK HUB") marks the check hub.
+- Hand sheets usually round translations to 0.01 ft before applying them. Older sheets truncate distances to 0.01. Some pairs get extra weight ("counted twice") or are ignored. Vertical differences are control − VRS (one older job wrote VRS − control).
+- Accuracy check (Oct 2026): the tool was compared against 111 of Dakota's past adjusted jobs. 491 of 499 bearings matched exactly, and every difference traced to the hand sheet or later file edits, not to the tool's math. **Treat the geometry in `solve()` as verified, and don't change the math casually.** If you must change it, re-check that Translation + Rotation still reproduces a known job exactly (use a job from Dakota's own files, never committed).
+
+#### How to run and test it
+
+- Open `index.html` directly in a browser (double-click it). There is nothing to install or build.
+- After a change: check the browser console for errors, click the example job, and confirm Results, the plot, Compare adjustments and the record sheet all render. Check Print Preview. Check a phone-width window too, since crews may open it in the field.
+- Dakota is a surveyor, not a developer. Explain changes in plain surveying terms.
