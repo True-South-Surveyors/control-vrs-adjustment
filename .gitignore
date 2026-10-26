@@ -1,0 +1,35 @@
+# Secrets: never commit these
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.pfx
+
+# Personal Claude Code settings and leftover agent worktrees
+.claude/settings.local.json
+.claude/worktrees/
+
+# Editor and test leftovers (shared VS Code settings may be committed; the rest is personal,
+# including launch.json, which can hold passwords)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+.coverage
+coverage/
+
+# Dependencies and build output
+node_modules/
+.venv/
+venv/
+__pycache__/
+dist/
+build/
+*.log
+
+# OS clutter
+Thumbs.db
+desktop.ini
+.DS_Store

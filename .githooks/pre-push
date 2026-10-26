@@ -1,0 +1,30 @@
+#!/bin/sh
+# Free-plan stand-in for GitHub branch protection. Runs on every push, from any tool.
+# Blocks pushing to or deleting main/master, and force pushes that would overwrite commits.
+# Code reaches main only by merging a pull request on GitHub.
+
+is_zero() {
+	case "$1" in *[!0]*) return 1 ;; esac
+	return 0
+}
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+	branch=${remote_ref#refs/heads/}
+	case "$branch" in
+	main | master)
+		# Allow the very first push that creates main in a brand-new repo.
+		if is_zero "$remote_sha" && ! is_zero "$local_sha"; then
+			continue
+		fi
+		echo "BLOCKED: don't push straight to $branch. Push a feature branch and open a pull request." >&2
+		exit 1
+		;;
+	esac
+	if ! is_zero "$local_sha" && ! is_zero "$remote_sha"; then
+		if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+			echo "BLOCKED: this push would overwrite commits on $branch. Run git fetch origin, then git merge --no-edit origin/$branch, then push again." >&2
+			exit 1
+		fi
+	fi
+done
+exit 0
