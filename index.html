@@ -495,7 +495,7 @@ function parseBinaryCRD(u8) {
     if (sample.length > 1 && good >= sample.length * 0.9) { idOff = off; idSource = "stored point number"; break; }
   }
   for (const k of recs) {
-    const id = idOff != null && k + idOff >= 0 && k + idOff + 4 <= u8.length ? String(dv.getInt32(k + idOff, true)) : String(recIndex(k) - recIndex(recs[0]) + 1);
+    const id = idOff != null ? String(dv.getInt32(k + idOff, true)) : String(recIndex(k) - recIndex(recs[0]) + 1);
     pts.push({ id, n: dv.getFloat64(k, true), e: dv.getFloat64(k + 8, true), z: dv.getFloat64(k + 16, true), d: txt(k + 24, k + stride) });
   }
   return { pts, note: `Read ${pts.length} points from a binary .crd (point numbers from ${idSource}). Spot-check a few against Carlson's point list.` };
@@ -592,7 +592,7 @@ function activePairs() {
 function solve() {
   const pairs = activePairs();
   const A = S.adj;
-  const res = { m: { n: 0, e: 0 }, theta: 0, sc: 1, Q: null, Qname: "", dZ: 0, hDesc: "None", vDesc: "None", err: [], warn: [], seed: null };
+  const res = { m: { n: 0, e: 0 }, theta: 0, sc: 1, Q: null, Qname: "", dZ: 0, hDesc: "None", vDesc: "None", err: [], seed: null };
   const pick = idx => pairs.find(p => p.i === +idx);
   const norm180 = a => ((a + 540) % 360) - 180;
   // horizontal
@@ -661,9 +661,6 @@ function solve() {
       const fixed = k => pairs.some(p => p.c === k) && !pairs.some(p => p.v === k);
       const moved = (pt, k) => fixed(k) ? { n: pt.n, e: pt.e } : { n: pt.n + res.m.n, e: pt.e + res.m.e };
       const pvFixed = fixed(pvId), own = pvId === id(A.mBase);
-      // A point in no pair is taken as a VRS point; say so, since a control point would be wrong here
-      const inPair = k => S.pairs.some(p => p.v === k || p.c === k);
-      for (const k of [own ? "" : pvId, Rf ? id(A.mRef) : "", Nw ? id(A.mNew) : ""]) if (k && !inPair(k)) res.warn.push(`${k} isn't in any pair, so it was treated as a VRS point and moved with the translation first. If it's a control point, add it to a pair (untick Fit if it shouldn't count).`);
       res.Q = moved(Pv, pvId);
       res.Qname = own && To ? id(A.mTo) : pvId;
       if (pvFixed) res.qLabel = pvId;
@@ -901,7 +898,6 @@ function renderResults() {
      ${rot || scl ? `<span style="color:var(--muted)">${esc(R.qLabel || R.Qname + " after translation")}: N ${fmt(R.Q.n, 3)}, E ${fmt(R.Q.e, 3)}</span>` : ""}
      <span class="lbl" style="margin-top:6px">Vertical translation</span>
      <span>Z ${fmtSigned(R.dZ, vdp)}</span>`;
-  if (!R.err.length && R.warn.length) p.insertAdjacentHTML("beforeend", R.warn.map(w => `<span class="hint warn" style="margin-top:6px">${esc(w)}</span>`).join(""));
   $("stats").innerHTML = [
     ["Horiz RMS", st.hRmsB, st.hRmsA, hdp], ["Horiz max", st.hMaxB, st.hMaxA, hdp],
     ["Vert RMS", st.vRmsB, st.vRmsA, vdp], ["Vert max", st.vMaxB, st.vMaxA, vdp],
@@ -1069,7 +1065,7 @@ function fixAdjIdx(removed) {
   for (const k of ["a", "b", "pivot", "vHold"]) { if (+S.adj[k] === removed) { S.adj[k] = -1; hit.push(k); } else if (S.adj[k] > removed) S.adj[k]--; }
   if (!hit.length) return;
   const ps = activePairs(), zs = ps.filter(p => p.V.z != null && p.C.z != null);
-  if (S.adj.a === -1) S.adj.a = ps.find(p => p.i !== +S.adj.b)?.i ?? ps[0]?.i ?? 0;
+  if (S.adj.a === -1) S.adj.a = (S.adj.hm === "shiftrot" ? ps.find(p => p.i !== +S.adj.b) : null)?.i ?? ps[0]?.i ?? 0;
   if (S.adj.b === -1) S.adj.b = ps.find(p => p.i !== +S.adj.a)?.i ?? 0;
   if (S.adj.pivot === -1) S.adj.pivot = ps[0]?.i ?? 0;
   if (S.adj.vHold === -1) S.adj.vHold = zs[0]?.i ?? 0;
