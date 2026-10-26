@@ -13,7 +13,7 @@ A browser tool for checking surveyed VRS points against an engineer's control po
 
 The tool only reports adjustment parameters. Apply the adjustment yourself in Carlson.
 
-The page opens blank. To see a worked check, download [samples/example-job.vrscheck.json](samples/example-job.vrscheck.json) (made-up coordinates) and load it with **Open job**.
+The page opens blank. To see a worked check, open [samples/example-job.vrscheck.json](samples/example-job.vrscheck.json) (made-up coordinates), click GitHub's "Download raw file" button, then load the file with **Open job**. Loading or pasting real points replaces the example.
 
 ## Privacy
 

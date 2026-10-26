@@ -779,7 +779,7 @@ function renderPoints() {
   $("ptCount").textContent = S.order.length;
   $("ptBody").innerHTML = S.order.map(id => { const p = S.points[id]; return `<tr><td class="mono">${esc(id)}</td><td class="num">${fmt(p.n, 3)}</td><td class="num">${fmt(p.e, 3)}</td><td class="num">${p.z == null ? "—" : fmt(p.z, 3)}</td><td>${esc(p.d)}</td></tr>`; }).join("") || `<tr><td colspan="5" class="empty">No points loaded.</td></tr>`;
   $("ptList").innerHTML = S.order.map(id => `<option value="${esc(id)}">${esc(S.points[id].d)}</option>`).join("");
-  if (!$("ptStatus").dataset.msg) $("ptStatus").textContent = S.order.length ? `${S.order.length} points loaded.` : "Load the job's coordinate file to begin.";
+  if (!$("ptStatus").dataset.msg) $("ptStatus").textContent = S.sample ? "Example data is loaded. Load your .crd or .txt to replace it." : (S.order.length ? `${S.order.length} points loaded.` : "Load the job's coordinate file to begin.");
 }
 // Nearest point that isn't a VRS, adjusted (A#) or temp (D#) point, within 5 ft
 const SUGGEST_FT = 5;
@@ -931,7 +931,7 @@ function renderSheet() {
       ${m.decision ? `<div><b>Note</b><pre>${esc(m.decision)}</pre></div>` : ""}
       ${R.hasAdj && !R.err.length ? `<div><b>Fit pairs</b> Horiz RMS ${fmt(R.stats.hRmsB, hdp)} → ${fmt(R.stats.hRmsA, hdp)} · Vert RMS ${fmt(R.stats.vRmsB, vdp)} → ${fmt(R.stats.vRmsA, vdp)}</div>` : ""}
     </div>
-    <div class="stamp"><span>Bearing/distance inversed VRS → control. Vert = control − VRS.</span><span>${esc(m.date)}${m.by ? " · " + esc(m.by) : ""}</span></div>`;
+    <div class="stamp"><span>Bearing/distance inversed VRS → control. Vert = control − VRS.</span><span>${esc(m.date)}${m.by ? " · " + esc(m.by) : ""}${S.sample ? " · EXAMPLE DATA" : ""}</span></div>`;
 }
 // Fill company, VRS point range and point notes from the points, until the user types in them
 const DEFAULT_COMPANY = "True South Surveyors";
@@ -969,10 +969,13 @@ function changed(full) { persist(); if (full) renderAll(); else renderResults();
 
 // ---------- events ----------
 function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2600); }
+// The sample job (samples/example-job.vrscheck.json) is marked sample: true; real points replace it rather than mix with it
+function clearSample() { if (S.sample) S = BLANK(); }
 
 $("ptFile").addEventListener("change", async ev => {
   const files = [...ev.target.files]; ev.target.value = "";
   if (!files.length) return;
+  clearSample();
   const msgs = [];
   for (const f of files) {
     try {
@@ -994,7 +997,7 @@ $("order").addEventListener("change", e => { S.fmt.order = e.target.value; persi
 $("addPaste").addEventListener("click", () => {
   const r = parseText($("paste").value, S.fmt.order, nextP());
   if (!r.pts.length) { toast("No points found. Check the column order."); return; }
-  r.pts.forEach(p => addPoint(S, p)); $("paste").value = "";
+  clearSample(); r.pts.forEach(p => addPoint(S, p)); $("paste").value = "";
   $("ptStatus").textContent = `Added ${r.pts.length} pasted points.`; $("ptStatus").dataset.msg = "1";
   changed(true);
 });
@@ -1131,7 +1134,7 @@ $("dlPts").addEventListener("click", () => {
 $("saveJob").addEventListener("click", () => download(`${S.meta.project || "control-check"}.vrscheck.json`, JSON.stringify(S, null, 1), "application/json"));
 $("jobFile").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
-  try { const o = JSON.parse(await f.text()); if (!o.points) throw 0; S = Object.assign(BLANK(), o); delete S.example; delete $("ptStatus").dataset.msg; changed(true); toast("Job opened."); }
+  try { const o = JSON.parse(await f.text()); if (!o.points) throw 0; S = Object.assign(BLANK(), o); if (S.example) S.sample = true; delete S.example; delete $("ptStatus").dataset.msg; changed(true); toast("Job opened."); }
   catch (_) { toast("That file isn't a saved job."); }
 });
 // New job asks in a separate bar; its Clear button is far from New job and ignores clicks for a moment

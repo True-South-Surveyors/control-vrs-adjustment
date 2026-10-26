@@ -172,5 +172,6 @@
   "order": "PNEZD",
   "exag": "auto"
  },
- "scenarios": []
+ "scenarios": [],
+ "sample": true
 }
