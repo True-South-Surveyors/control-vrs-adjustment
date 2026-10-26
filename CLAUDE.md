@@ -224,7 +224,7 @@ Page sections: **1 Points**, **2 Pairs**, **3 Adjustment**, **Results**, **Recor
 
 **Horizontal adjustments** (`S.adj.hm`, solved in `solve()`)
 - Translation to one pair (hold a pair).
-- Translation (average of the pairs ticked Fit).
+- Translation (average of the pairs ticked Incl., short for "Include in adjustment"; Dakota renamed this column from "Fit" in Oct 2026).
 - Translation + Rotation (translate onto one pair, then rotate about that control point so a second pair's bearing matches the control bearing).
 - Least-squares best fit, with optional Scale.
 - Manual by points: translation base point → translate-to point; an optional separate rotation base point (blank = same as the translation base); a reference bearing from the rotation base to a V#, and a new bearing to a control point; optional scale.

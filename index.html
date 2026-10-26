@@ -226,10 +226,10 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
       <!-- STEP 2 -->
       <section class="panel" aria-labelledby="h-pairs">
         <h2 id="h-pairs"><span class="n">2</span>Pairs</h2>
-        <p class="hint">Match each VRS point to the engineer's control point. Picking a V point (or a range with Select Range) suggests the nearest control point within 5 ft (in italics) and copies the V point's description as the label; type over either to change it. Untick "Fit" for check shots (check hub, base pole) so they're reported but don't drive the adjustment.</p>
+        <p class="hint">Match each VRS point to the engineer's control point. Picking a V point (or a range with Select Range) suggests the nearest control point within 5 ft (in italics) and copies the V point's description as the label; type over either to change it. Untick "Incl." (include in adjustment) for check shots (check hub, base pole) so they're reported but don't drive the adjustment.</p>
         <div class="tbl-wrap">
           <table class="pairs">
-            <thead><tr><th>VRS</th><th></th><th>Control</th><th>Label</th><th title="Use in adjustment">Fit</th><th></th></tr></thead>
+            <thead><tr><th>VRS</th><th></th><th>Control</th><th>Label</th><th title="Include in adjustment">Incl.</th><th></th></tr></thead>
             <tbody id="pairBody"></tbody>
           </table>
         </div>
@@ -597,15 +597,15 @@ function solve() {
     }
   } else if (A.hm === "avg") {
     const use = pairs.filter(p => p.use);
-    if (!use.length) res.err.push("Translation (average) needs at least one pair ticked for Fit.");
+    if (!use.length) res.err.push("Translation (average) needs at least one pair ticked Incl.");
     else {
       res.m = { n: use.reduce((s, p) => s + p.C.n - p.V.n, 0) / use.length, e: use.reduce((s, p) => s + p.C.e - p.V.e, 0) / use.length };
-      res.Q = { n: use[0].C.n, e: use[0].C.e }; res.Qname = use[0].c; res.mNote = `average of ${use.length} fit pairs`;
-      res.hDesc = `Translation (average of ${use.length} fit pairs: ${use.map(p => p.v).join(", ")})`;
+      res.Q = { n: use[0].C.n, e: use[0].C.e }; res.Qname = use[0].c; res.mNote = `average of ${use.length} included pairs`;
+      res.hDesc = `Translation (average of ${use.length} included pairs: ${use.map(p => p.v).join(", ")})`;
     }
   } else if (A.hm === "fit") {
     const use = pairs.filter(p => p.use);
-    if (use.length < 2) res.err.push("Best fit needs at least two pairs ticked for Fit.");
+    if (use.length < 2) res.err.push("Best fit needs at least two pairs ticked Incl.");
     else {
       const k = use.length;
       const cv = { n: use.reduce((s, p) => s + p.V.n, 0) / k, e: use.reduce((s, p) => s + p.V.e, 0) / k };
@@ -667,8 +667,8 @@ function solve() {
   } else if (A.vm === "mean" || A.vm === "mid") {
     const use = vPairs.filter(p => p.use).map(p => p.C.z - p.V.z);
     if (!use.length) res.err.push("No ticked pairs have elevations.");
-    else if (A.vm === "mean") { res.dZ = use.reduce((a, b) => a + b, 0) / use.length; res.vDesc = `Average of ${use.length} fit pairs`; }
-    else { res.dZ = (Math.max(...use) + Math.min(...use)) / 2; res.vDesc = `Split the range of ${use.length} fit pairs`; }
+    else if (A.vm === "mean") { res.dZ = use.reduce((a, b) => a + b, 0) / use.length; res.vDesc = `Average of ${use.length} included pairs`; }
+    else { res.dZ = (Math.max(...use) + Math.min(...use)) / 2; res.vDesc = `Split the range of ${use.length} included pairs`; }
   } else if (A.vm === "manual") {
     const v = parseFloat(A.vManual);
     if (isNaN(v)) res.err.push("Enter the vertical adjustment as a number.");
@@ -705,9 +705,9 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "
 const MODE_HELP = {
   none: "No horizontal adjustment.",
   shift: "Translation: moves every VRS point the same amount so one VRS point lands on its control point.",
-  avg: "Translation by the average difference of the pairs ticked Fit. No rotation or scale.",
+  avg: "Translation by the average difference of the pairs ticked Incl. No rotation or scale.",
   shiftrot: "Translation onto one pair, then rotation about that control point so a second pair's bearing matches the control bearing.",
-  fit: "Least squares: the translation and rotation (and scale, if ticked) that make the squared misses of all pairs ticked Fit as small as possible.",
+  fit: "Least squares: the translation and rotation (and scale, if ticked) that make the squared misses of all pairs ticked Incl. as small as possible.",
   manual: "Pick a base point and where to translate it, then a rotation base point (the same one unless you change it) with a reference and new bearing. Picking Manual after another option starts from that option's points.",
 };
 function niceNum(x) { const p = Math.pow(10, Math.floor(Math.log10(x))), f = x / p; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p; }
@@ -813,7 +813,7 @@ function renderPairs() {
       <td style="color:var(--muted)">→</td>
       <td><input type="text" class="id" list="ptList" data-i="${i}" data-k="c" value="${esc(p.c)}" aria-label="Control point" title="${p.cAuto && p.c ? `Suggested: nearest control point, ${fmt(p.cDist ?? 0, 2)} ft away` : ""}" style="${p.c && !okC ? "border-color:var(--bad)" : p.cAuto && p.c ? "font-style:italic" : ""}"></td>
       <td><input type="text" data-i="${i}" data-k="label" value="${esc(p.label)}" placeholder="${esc((S.points[p.c] || {}).d || "")}" aria-label="Label"></td>
-      <td><input type="checkbox" data-i="${i}" data-k="use" ${p.use ? "checked" : ""} aria-label="Use in fit"></td>
+      <td><input type="checkbox" data-i="${i}" data-k="use" ${p.use ? "checked" : ""} aria-label="Include in adjustment"></td>
       <td><button type="button" class="ghost" data-del="${i}" aria-label="Remove pair">✕</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="6" class="empty">No pairs yet. Add one, or paste a list.</td></tr>`;
@@ -846,7 +846,7 @@ function renderAdjOptions() {
   let v = "";
   if (A.vm === "hold") v = `<label class="f"><span>Hold the elevation of</span><select id="aVHold">${pairOptions(A.vHold, p => p.V.z != null && p.C.z != null)}</select></label>`;
   if (A.vm === "manual") v = `<label class="f" style="max-width:200px"><span>Vertical translation (negative lowers)</span><input type="text" id="aVMan" value="${esc(A.vManual)}" placeholder="-0.08"></label>`;
-  if (A.vm === "mean" || A.vm === "mid") v = `<p class="hint">Uses the pairs ticked for Fit.</p>`;
+  if (A.vm === "mean" || A.vm === "mid") v = `<p class="hint">Uses the pairs ticked Incl.</p>`;
   $("vOpts").innerHTML = v; $("vOpts").hidden = !v;
 }
 function chg(b, a, dp) {
@@ -880,7 +880,7 @@ function renderResults() {
   $("stats").innerHTML = [
     ["Horiz RMS", st.hRmsB, st.hRmsA, hdp], ["Horiz max", st.hMaxB, st.hMaxA, hdp],
     ["Vert RMS", st.vRmsB, st.vRmsA, vdp], ["Vert max", st.vMaxB, st.vMaxA, vdp],
-  ].map(([l, b, a, dp]) => `<div class="stat"><small>${l}</small><b>${fmt(R.hasAdj ? a : b, dp)}</b>${R.hasAdj ? chg(b, a, dp) : `<span class="chg" style="color:var(--muted)">fit pairs: ${st.n}</span>`}</div>`).join("");
+  ].map(([l, b, a, dp]) => `<div class="stat"><small>${l}</small><b>${fmt(R.hasAdj ? a : b, dp)}</b>${R.hasAdj ? chg(b, a, dp) : `<span class="chg" style="color:var(--muted)">included pairs: ${st.n}</span>`}</div>`).join("");
   $("resBody").innerHTML = R.rows.map(({ p, b, a }) => `<tr>
       <td class="mono">${esc(p.v)} → ${esc(p.c)} ${p.use ? "" : `<span class="pill check">check</span>`}</td>
       <td class="mono cb first">${bearing(b.az, b.h)}</td><td class="num cb">${fmt(b.h, hdp)}</td><td class="num cb">${fmtSigned(b.v, vdp)}</td>
@@ -929,7 +929,7 @@ function renderSheet() {
     ${R.rows.length > 1 ? `<div class="plot">${plotSVG(R, 720, 250)}</div>` : ""}
     <div class="notes">
       ${m.decision ? `<div><b>Note</b><pre>${esc(m.decision)}</pre></div>` : ""}
-      ${R.hasAdj && !R.err.length ? `<div><b>Fit pairs</b> Horiz RMS ${fmt(R.stats.hRmsB, hdp)} → ${fmt(R.stats.hRmsA, hdp)} · Vert RMS ${fmt(R.stats.vRmsB, vdp)} → ${fmt(R.stats.vRmsA, vdp)}</div>` : ""}
+      ${R.hasAdj && !R.err.length ? `<div><b>Included pairs</b> Horiz RMS ${fmt(R.stats.hRmsB, hdp)} → ${fmt(R.stats.hRmsA, hdp)} · Vert RMS ${fmt(R.stats.vRmsB, vdp)} → ${fmt(R.stats.vRmsA, vdp)}</div>` : ""}
     </div>
     <div class="stamp"><span>Bearing/distance inversed VRS → control. Vert = control − VRS.</span><span>${esc(m.date)}${m.by ? " · " + esc(m.by) : ""}${S.sample ? " · EXAMPLE DATA" : ""}</span></div>`;
 }
@@ -1111,7 +1111,7 @@ function download(name, text, type) {
 function csvText() {
   if (!R) return null;
   const { hdp, vdp } = S.fmt, q = s => `"${String(s).replace(/"/g, '""')}"`;
-  const lines = [["VRS", "Control", "Label", "Fit", "Bearing before", "Horiz before", "Vert before", "Bearing after", "Horiz after", "Vert after"].join(",")];
+  const lines = [["VRS", "Control", "Label", "Included", "Bearing before", "Horiz before", "Vert before", "Bearing after", "Horiz after", "Vert after"].join(",")];
   // With an unfinished adjustment, keep the before inverses and leave the after columns blank
   const after = R.hasAdj && !R.err.length;
   for (const r of R.rows) lines.push([r.p.v, r.p.c, r.p.label, r.p.use ? "Y" : "N", bearing(r.b.az, r.b.h), fmt(r.b.h, hdp), fmt(r.b.v, vdp), after ? bearing(r.a.az, r.a.h) : "", after ? fmt(r.a.h, hdp) : "", after ? fmt(r.a.v, vdp) : ""].map(q).join(","));
