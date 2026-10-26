@@ -226,7 +226,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
       <!-- STEP 2 -->
       <section class="panel" aria-labelledby="h-pairs">
         <h2 id="h-pairs"><span class="n">2</span>Pairs</h2>
-        <p class="hint">Match each VRS point to the engineer's control point. Picking a V point (or a range with Select Range) suggests the nearest control point within 5 ft (in italics) and copies the V point's description as the label; type over either to change it. Untick "Incl." (include in adjustment) for check shots (check hub, base pole) so they're reported but don't drive the adjustment.</p>
+        <p class="hint">Match each VRS point to the engineer's control point. Picking a V point (or a range with Select Range) suggests the nearest control point within 5 ft (in italics) and copies the V point's description as the label; type over either to change it. Untick "Incl." (include in adjustment) for check shots (check hub, base pole) so they're reported but left out of Translation (average), Best fit, and vertical Average and Split range. A pair you choose to hold, rotate to or use in Manual is used whether it's ticked or not.</p>
         <div class="tbl-wrap">
           <table class="pairs">
             <thead><tr><th>VRS</th><th></th><th>Control</th><th>Label</th><th title="Include in adjustment">Incl.</th><th></th></tr></thead>
@@ -666,7 +666,7 @@ function solve() {
     else { res.dZ = p.C.z - p.V.z; res.vDesc = `Hold ${p.c} elevation (${p.v} → ${p.c})`; }
   } else if (A.vm === "mean" || A.vm === "mid") {
     const use = vPairs.filter(p => p.use).map(p => p.C.z - p.V.z);
-    if (!use.length) res.err.push("No ticked pairs have elevations.");
+    if (!use.length) res.err.push("No pairs ticked Incl. have elevations.");
     else if (A.vm === "mean") { res.dZ = use.reduce((a, b) => a + b, 0) / use.length; res.vDesc = `Average of ${use.length} included pairs`; }
     else { res.dZ = (Math.max(...use) + Math.min(...use)) / 2; res.vDesc = `Split the range of ${use.length} included pairs`; }
   } else if (A.vm === "manual") {
