@@ -209,7 +209,7 @@ This repo hosts **VRS Control Check**, a single-page browser tool the crew uses 
 #### Hard rules for the code
 
 - **Keep it one self-contained file.** Everything (HTML, CSS, JS) lives in `index.html`. The only external loads are Google Fonts (IBM Plex) and, only when a SQLite-style `.crd` is opened, `sql.js` 1.8.0 from jsDelivr, pinned with an SRI hash (if you change the version, update the hash too). Don't add a build step, framework, or backend.
-- **Nothing leaves the browser.** Files are read locally. State is saved to `localStorage` under the key `vrs-control-check-v1`. If you change the shape of the saved state, keep `restore()` tolerant of older saves, or bump the key.
+- **Nothing leaves the browser.** Files are read locally. State is saved to `sessionStorage` (not `localStorage`) under the key `vrs-control-check-v1`, so it survives a refresh but is erased when the tab closes. Dakota chose this (Oct 2026) so a job isn't left behind on a shared computer. `restore()` also deletes any copy older versions left in `localStorage`. If you change the shape of the saved state, keep `restore()` tolerant of older saves, or bump the key.
 - **Naming:** Dakota wants the adjustment terms **Translation / Rotation / Scale** used everywhere in the UI and on the printed sheet. Don't write "shift", "rotate", or "transform" in user-facing text.
 - The company name on the sheet defaults to "True South Surveyors" (`DEFAULT_COMPANY`).
 

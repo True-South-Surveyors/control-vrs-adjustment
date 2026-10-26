@@ -395,11 +395,12 @@ function addPoint(s, p) {
   s.points[id] = { id, n: +p.n, e: +p.e, z: (p.z === "" || p.z == null || isNaN(+p.z)) ? null : +p.z, d: p.d || "" };
 }
 
-// ---------- persistence (per-browser convenience only) ----------
+// ---------- persistence (this tab only: survives a refresh, gone when the tab closes) ----------
 const KEY = "vrs-control-check-v1";
-function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function persist() { try { sessionStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function restore() {
-  try { const t = localStorage.getItem(KEY); if (t) { const o = JSON.parse(t); if (o && o.points) return Object.assign(BLANK(), o); } } catch (e) {}
+  try { localStorage.removeItem(KEY); } catch (e) {} // wipe jobs saved by older versions, which kept them after closing
+  try { const t = sessionStorage.getItem(KEY); if (t) { const o = JSON.parse(t); if (o && o.points) return Object.assign(BLANK(), o); } } catch (e) {}
   return null;
 }
 
