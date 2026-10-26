@@ -15,7 +15,7 @@ The tool only reports adjustment parameters. Apply the adjustment yourself in Ca
 
 ## Privacy
 
-Everything runs in your browser. Files you load are never uploaded anywhere. Your last session is remembered in your own browser only.
+Everything runs in your browser. Files you load are never uploaded anywhere. The job you're working on survives a page refresh, but it's cleared when you close the tab. Use Save job if you want to keep it. (Reopening a closed tab, or a browser set to "continue where you left off", can bring the job back, so on a shared computer click New job when you're done.)
 
 ## Updating
 

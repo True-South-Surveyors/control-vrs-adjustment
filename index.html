@@ -181,6 +181,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
     <div>
       <h1>VRS Control Check</h1>
       <p class="sub">Inverse each observed VRS point to the engineer's control, try adjustments, and print the record for the job file.</p>
+      <p class="hint">This job is kept only while this tab is open. Use Save job to keep it.</p>
     </div>
     <div class="row">
       <span class="file"><button type="button">Open job</button><input id="jobFile" type="file" accept=".json,application/json" aria-label="Open a saved job file"></span>
@@ -395,11 +396,16 @@ function addPoint(s, p) {
   s.points[id] = { id, n: +p.n, e: +p.e, z: (p.z === "" || p.z == null || isNaN(+p.z)) ? null : +p.z, d: p.d || "" };
 }
 
-// ---------- persistence (per-browser convenience only) ----------
+// ---------- persistence (this tab only: survives a refresh, cleared when the tab closes,
+// though a browser that reopens closed tabs may bring it back) ----------
 const KEY = "vrs-control-check-v1";
-function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function persist() { try { sessionStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function restore() {
-  try { const t = localStorage.getItem(KEY); if (t) { const o = JSON.parse(t); if (o && o.points) return Object.assign(BLANK(), o); } } catch (e) {}
+  let t = null;
+  try { t = sessionStorage.getItem(KEY); } catch (e) {}
+  // Older versions kept the job in localStorage after closing: move it into this tab once so work in progress isn't lost, then delete it
+  try { const old = localStorage.getItem(KEY); if (old != null) { if (t == null) { t = old; try { sessionStorage.setItem(KEY, old); } catch (e) {} } localStorage.removeItem(KEY); } } catch (e) {}
+  try { if (t) { const o = JSON.parse(t); if (o && o.points) return Object.assign(BLANK(), o); } } catch (e) {}
   return null;
 }
 
