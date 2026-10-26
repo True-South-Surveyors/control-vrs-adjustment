@@ -1,0 +1,1174 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VRS Control Check</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: a working column of three steps (points, pairs, adjustment) beside a live results panel; the field record sheet sits below and is the only thing that prints. */
+:root {
+  --bg: #eef1ef;
+  --panel: #ffffff;
+  --ink: #17201c;
+  --muted: #5b6862;
+  --line: #cfd6d2;
+  --grid: #dfe7e3;
+  --accent: #1d5d8c;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2edf5;
+  --good: #23784a;
+  --warn: #9a6408;
+  --bad: #b23a2c;
+  --p-ctrl: #17201c; --p-before: #8a6a2a; --p-after: #1d5d8c; --p-text: #17201c; --p-muted: #5b6862; --p-bg: #ffffff;
+  --font-body: "IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-head: "IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+  --font-num: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121816; --panel: #1a2220; --ink: #e4ebe7; --muted: #9aa9a2; --line: #33403b; --grid: #24302c;
+    --accent: #6fb0e0; --accent-ink: #0d1a24; --accent-soft: #1d2f3c;
+    --good: #5fc48c; --warn: #e0a84a; --bad: #ef7a6a; --p-ctrl: #e4ebe7; --p-before: #d9b26a; --p-after: #6fb0e0; --p-text: #e4ebe7; --p-muted: #9aa9a2; --p-bg: #1a2220; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121816; --panel: #1a2220; --ink: #e4ebe7; --muted: #9aa9a2; --line: #33403b; --grid: #24302c;
+  --accent: #6fb0e0; --accent-ink: #0d1a24; --accent-soft: #1d2f3c;
+  --good: #5fc48c; --warn: #e0a84a; --bad: #ef7a6a; --p-ctrl: #e4ebe7; --p-before: #d9b26a; --p-after: #6fb0e0; --p-text: #e4ebe7; --p-muted: #9aa9a2; --p-bg: #1a2220; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.45; margin: 0; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+h1 { font-family: var(--font-head); font-weight: 600; font-size: 26px; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; max-width: 70ch; }
+h2 { font-family: var(--font-head); font-weight: 600; font-size: 17px; margin: 0; display: flex; gap: 10px; align-items: center; }
+h2 .n { font-family: var(--font-num); font-size: 12px; color: var(--accent-ink); background: var(--accent); border-radius: 3px; padding: 1px 6px; }
+.grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
+@media (max-width: 960px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.col { display: grid; gap: 18px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 0; }
+.hint.warn { color: var(--warn); }
+.hint.bad { color: var(--bad); }
+label.f { display: grid; gap: 3px; font-size: 12px; color: var(--muted); min-width: 0; }
+label.f > span { text-transform: uppercase; letter-spacing: .06em; font-size: 11px; }
+input, select, textarea, button { font: inherit; color: var(--ink); }
+input[type=text], input[type=number], input[type=date], select, textarea {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; min-width: 0; width: 100%;
+}
+textarea { font-family: var(--font-num); font-size: 12.5px; resize: vertical; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button { cursor: pointer; border-radius: 4px; border: 1px solid var(--line); background: var(--panel); padding: 6px 12px; font-weight: 500; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 4px 6px; }
+button.ghost:hover { color: var(--bad); border-color: transparent; }
+.file { position: relative; overflow: hidden; display: inline-flex; }
+.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+td.num, th.num { text-align: right; font-family: var(--font-num); white-space: nowrap; }
+td.mono { font-family: var(--font-num); white-space: nowrap; }
+.pairs td { padding: 4px 4px; }
+.pairs input[type=text] { padding: 4px 6px; }
+.pairs .id { width: 92px; }
+.pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.pill.check { background: transparent; border: 1px solid var(--muted); color: var(--muted); }
+.delta-good { color: var(--good); }
+.delta-bad { color: var(--bad); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.stat { border: 1px solid var(--grid); border-radius: 4px; padding: 8px 10px; display: grid; gap: 2px; }
+.stat b { font-family: var(--font-num); font-size: 16px; font-weight: 500; }
+.stat small { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.stat .chg { font-family: var(--font-num); font-size: 11.5px; }
+.params { font-family: var(--font-num); font-size: 13px; background: var(--accent-soft); border-radius: 4px; padding: 10px 12px; display: grid; gap: 3px; }
+.params .lbl { font-family: var(--font-body); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg label { border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 13px; user-select: none; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.bench { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.adj-panel { position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 24px); overflow-y: auto; }
+@media (max-width: 960px) { .setup, .bench { grid-template-columns: minmax(0, 1fr); } .adj-panel { position: static; max-height: none; } }
+.mode-help { min-height: 2.9em; }
+.plot svg { display: block; width: 100%; height: auto; }
+.plot { border: 1px solid var(--grid); border-radius: 4px; background: var(--bg); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { width: 26px; height: 10px; }
+.pl-ctrl { stroke: var(--p-ctrl); fill: none; stroke-width: 1.4; }
+.pl-ctrl-pt { fill: var(--p-ctrl); }
+.pl-before { stroke: var(--p-before); fill: none; stroke-width: 1.2; stroke-dasharray: 5 4; }
+.pl-before-pt { fill: var(--p-bg); stroke: var(--p-before); stroke-width: 1.4; }
+/* Results table: Before columns tinted like the "VRS before" plot colour, After like "VRS after" */
+table.res .cb { background: color-mix(in srgb, var(--p-before) 9%, transparent); }
+table.res .ca { background: color-mix(in srgb, var(--p-after) 10%, transparent); }
+table.res th.cb, table.res th.ca { color: var(--ink); }
+table.res tr.band th.cb { background: color-mix(in srgb, var(--p-before) 24%, transparent); border-bottom: 2px solid var(--p-before); }
+table.res tr.band th.ca { background: color-mix(in srgb, var(--p-after) 24%, transparent); border-bottom: 2px solid var(--p-after); }
+table.res .ca.first { border-left: 2px solid var(--p-after); }
+table.res .cb.first { border-left: 2px solid var(--p-before); }
+.pl-after { stroke: var(--p-after); fill: none; stroke-width: 1.8; }
+.pl-after-fill { fill: var(--p-after); fill-opacity: .07; stroke: none; }
+.pl-after-pt { fill: var(--p-after); }
+.pl-vec-b { stroke: var(--p-before); stroke-width: 1; opacity: .7; }
+.pl-vec-a { stroke: var(--p-after); stroke-width: 1.6; }
+.pl-txt { fill: var(--p-text); font-family: var(--font-num); font-size: 11px; }
+.pl-sub { fill: var(--p-muted); font-family: var(--font-body); font-size: 10.5px; }
+.pl-axis { stroke: var(--p-muted); stroke-width: 1; fill: none; }
+.confirm { border-color: var(--bad); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
+button.danger { background: var(--bad); border-color: var(--bad); color: var(--panel); }
+.chk { display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer; }
+.mgroup { display: grid; gap: 8px; }
+.mgroup > b { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.subopts { display: grid; gap: 10px; border-left: 2px solid var(--grid); padding-left: 12px; }
+.empty { color: var(--muted); padding: 14px 8px; text-align: center; }
+details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 4px; font-size: 13px; z-index: 9; }
+
+/* Field record sheet: engineering-paper grid, always light so it prints like the hand sheet */
+.sheet-outer { overflow-x: auto; }
+.sheet {
+  --s-ink: #111; --s-muted: #555; --s-grid: #d9e4ec; --s-rule: #111;
+  --p-ctrl: #111; --p-before: #8a6a2a; --p-after: #1d5d8c; --p-text: #111; --p-muted: #555; --p-bg: #fff;
+  background-color: #fff; color: var(--s-ink);
+  background-image: linear-gradient(var(--s-grid) 1px, transparent 1px), linear-gradient(90deg, var(--s-grid) 1px, transparent 1px);
+  background-size: 18px 18px;
+  width: 100%; max-width: 8.5in; min-width: 640px; margin: 0 auto; padding: .5in .55in; border: 1px solid var(--line); border-radius: 2px;
+  display: grid; gap: 14px; color-scheme: light;
+}
+.sheet .hdr { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.sheet .co { font-family: var(--font-head); font-weight: 600; font-size: 15px; }
+.sheet .ttl { text-align: center; display: grid; gap: 2px; }
+.sheet .ttl .p { font-family: var(--font-head); font-size: 24px; font-weight: 600; }
+.sheet .ttl .s { letter-spacing: .14em; font-size: 12px; text-transform: uppercase; }
+.sheet .meta { font-size: 12px; text-align: right; display: grid; gap: 2px; white-space: pre-line; }
+.sheet table { background: #fff; }
+.sheet th { color: var(--s-ink); border-bottom: 2px solid var(--s-rule); font-size: 11px; }
+.sheet td { border-bottom: 1px solid #333; border-color: #333; color: var(--s-ink); }
+.sheet td + td, .sheet th + th { border-left: 1px solid #333; }
+.sheet .rowhead td { background: #f3f5f6; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.sheet .adjrow td { border-top: 2px solid var(--s-rule); border-bottom: 2px solid var(--s-rule); font-size: 12.5px; }
+.sheet .role { display: block; font-size: 10.5px; color: var(--s-muted); }
+.sheet .notes { display: grid; gap: 6px; font-size: 12.5px; }
+.sheet .notes b { font-family: var(--font-head); text-transform: uppercase; letter-spacing: .06em; font-size: 11.5px; }
+.sheet .stamp { font-size: 10.5px; color: var(--s-muted); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.sheet .plot { background: #fff; border-color: #333; }
+.sheet pre { margin: 0; font-family: var(--font-body); white-space: pre-wrap; }
+
+@media print {
+  @page { size: letter; margin: 0; }
+  body { background: #fff; }
+  .wrap { padding: 0; max-width: none; display: block; }
+  .noprint { display: none !important; }
+  .sheet-outer { overflow: visible; }
+  .sheet { padding: .4in .5in; gap: 10px; }
+  .sheet td { padding: 3px 8px; }
+  .sheet { border: 0; min-width: 0; max-width: none; width: 8.5in; min-height: 11in; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head><body>
+
+<div class="wrap">
+  <header class="top noprint">
+    <div>
+      <h1>VRS Control Check</h1>
+      <p class="sub">Inverse each observed VRS point to the engineer's control, try adjustments, and print the record for the job file.</p>
+    </div>
+    <div class="row">
+      <span class="file"><button type="button">Open job</button><input id="jobFile" type="file" accept=".json,application/json" aria-label="Open a saved job file"></span>
+      <button type="button" id="saveJob">Save job</button>
+      <button type="button" id="resetJob">New job</button>
+    </div>
+  </header>
+  <div class="panel confirm noprint" id="resetBar" hidden role="alertdialog" aria-labelledby="resetMsg">
+    <p id="resetMsg" style="margin:0"><b>Start a new job?</b> This clears the loaded points, pairs, adjustments and record details. Save the job first if you want to keep it.</p>
+    <div class="row"><button type="button" id="resetCancel">Keep working</button><button type="button" class="danger" id="resetYes">Clear and start new</button></div>
+  </div>
+
+  <div class="setup noprint">
+      <!-- STEP 1 -->
+      <section class="panel" aria-labelledby="h-pts">
+        <h2 id="h-pts"><span class="n">1</span>Points</h2>
+        <div class="row">
+          <span class="file"><button type="button" class="primary">Load .crd / .txt / .csv</button><input id="ptFile" type="file" multiple accept=".crd,.txt,.csv,.pnt,.asc,.xyz" aria-label="Load point files"></span>
+          <label class="f" style="width:150px"><span>Text column order</span>
+            <select id="order">
+              <option value="PNEZD">P, N, E, Z, D</option>
+              <option value="PENZD">P, E, N, Z, D</option>
+              <option value="NEZ">N, E, Z (no point #)</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint" id="ptStatus"></p>
+        <details>
+          <summary>Paste points instead</summary>
+          <div style="display:grid; gap:8px; margin-top:8px">
+            <textarea id="paste" rows="5" placeholder="V1,512340.020,1023455.800,812.38,VRS&#10;47005,512340.089,1023455.867,812.40,ENL"></textarea>
+            <div class="row"><button type="button" id="addPaste">Add pasted points</button></div>
+          </div>
+        </details>
+        <details>
+          <summary>Point list (<span id="ptCount">0</span>)</summary>
+          <div class="tbl-wrap" style="max-height:260px; overflow:auto; margin-top:8px">
+            <table><thead><tr><th>Point</th><th class="num">Northing</th><th class="num">Easting</th><th class="num">Elev</th><th>Desc</th></tr></thead><tbody id="ptBody"></tbody></table>
+          </div>
+        </details>
+      </section>
+      <!-- STEP 2 -->
+      <section class="panel" aria-labelledby="h-pairs">
+        <h2 id="h-pairs"><span class="n">2</span>Pairs</h2>
+        <p class="hint">Match each VRS point to the engineer's control point. Picking a V point (or a range with Select Range) suggests the nearest control point within 5 ft (in italics) and copies the V point's description as the label; type over either to change it. Untick "Fit" for check shots (check hub, base pole) so they're reported but don't drive the adjustment.</p>
+        <div class="tbl-wrap">
+          <table class="pairs">
+            <thead><tr><th>VRS</th><th></th><th>Control</th><th>Label</th><th title="Use in adjustment">Fit</th><th></th></tr></thead>
+            <tbody id="pairBody"></tbody>
+          </table>
+        </div>
+        <datalist id="ptList"></datalist>
+        <div class="row">
+          <button type="button" id="addPair">Add pair</button>
+          <button type="button" id="autoPair" title="Add a range of V points, e.g. V1, V2, V5-V8">Select Range</button>
+        </div>
+        <div id="autoBox" hidden style="display:grid; gap:6px">
+          <textarea id="autoText" rows="3" placeholder="V1, V2, V5-V8 (or V1=47005 to name the control point)"></textarea>
+          <div class="row"><button type="button" id="autoGo">Add these points</button></div>
+        </div>
+      </section>
+  </div>
+
+  <div class="bench noprint">
+      <!-- STEP 3 -->
+      <section class="panel adj-panel" aria-labelledby="h-adj">
+        <h2 id="h-adj"><span class="n">3</span>Adjustment</h2>
+        <div style="display:grid; gap:8px">
+          <label class="f"><span>Horizontal</span></label>
+          <div class="seg" role="radiogroup" aria-label="Horizontal adjustment">
+            <label><input type="radio" name="hm" value="none" checked>None</label>
+            <label><input type="radio" name="hm" value="shift">Translation</label>
+            <label><input type="radio" name="hm" value="avg">Translation (average)</label>
+            <label><input type="radio" name="hm" value="shiftrot">Translation + rotation</label>
+            <label><input type="radio" name="hm" value="fit">Best fit (least squares)</label>
+            <label><input type="radio" name="hm" value="manual">Manual</label>
+          </div>
+          <p class="hint mode-help" id="hHelp"></p>
+          <div class="subopts" id="hOpts"></div>
+        </div>
+        <div style="display:grid; gap:8px">
+          <label class="f"><span>Vertical translation</span></label>
+          <div class="seg" role="radiogroup" aria-label="Vertical adjustment">
+            <label><input type="radio" name="vm" value="none" checked>None</label>
+            <label><input type="radio" name="vm" value="hold">Hold one pair</label>
+            <label><input type="radio" name="vm" value="mean">Average</label>
+            <label><input type="radio" name="vm" value="mid">Split range</label>
+            <label><input type="radio" name="vm" value="manual">Manual</label>
+          </div>
+          <div class="subopts" id="vOpts"></div>
+        </div>
+        <div class="params" id="params" aria-live="polite"></div>
+        <p class="hint">Apply in order: translation first, then rotation and scale about the point named.</p>
+      </section>
+      <section class="panel" aria-labelledby="h-res">
+        <div class="row" style="justify-content:space-between">
+          <h2 id="h-res">Results</h2>
+          <div class="row">
+            <label class="f" style="width:96px"><span>Horiz dp</span><select id="hdp"><option>3</option><option selected>4</option></select></label>
+            <label class="f" style="width:96px"><span>Vert dp</span><select id="vdp"><option selected>2</option><option>3</option></select></label>
+          </div>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="tbl-wrap">
+          <table class="res">
+            <thead>
+              <tr class="band"><th rowspan="2">Pair</th><th colspan="3" class="cb first" style="text-align:center">Before</th><th colspan="3" class="ca first" style="text-align:center">After adjustment</th></tr>
+              <tr><th class="cb first">Bearing</th><th class="num cb">Horiz</th><th class="num cb">Vert</th><th class="ca first">Bearing</th><th class="num ca">Horiz</th><th class="num ca">Vert</th></tr>
+            </thead>
+            <tbody id="resBody"></tbody>
+          </table>
+        </div>
+        <div class="plot-head row" style="justify-content:space-between">
+          <div class="legend" id="plotLegend"></div>
+          <label class="f" style="width:150px"><span>Exaggerate errors</span>
+            <select id="exag"><option value="auto">Auto</option><option>100</option><option>200</option><option>500</option><option>1000</option><option>2000</option><option>5000</option></select>
+          </label>
+        </div>
+        <div class="plot" id="plot"></div>
+        <p class="hint">Bearing and horizontal distance are inversed from the VRS point to the control point. Vert = control elevation minus VRS elevation.</p>
+      </section>
+  </div>
+
+  <div class="setup noprint">
+      <section class="panel" aria-labelledby="h-rec">
+        <h2 id="h-rec">Record details</h2>
+        <div class="two">
+          <label class="f"><span>Project</span><input type="text" id="mProject" placeholder="Project name"></label>
+          <label class="f"><span>Sheet subtitle</span><input type="text" id="mSub" placeholder="Control"></label>
+          <label class="f"><span>Company</span><input type="text" id="mCompany" placeholder="Your company name"></label>
+          <label class="f"><span>Date</span><input type="date" id="mDate"></label>
+          <label class="f"><span>Prepared by</span><input type="text" id="mBy"></label>
+          <label class="f"><span>VRS points</span><input type="text" id="mRange" placeholder="V1–V8"></label>
+        </div>
+        <label class="f"><span>Point notes (check hub, SIR, base pole)</span><textarea id="mPoints" rows="2" placeholder="V2 SIR w/ cap&#10;V3 chk hub/tac"></textarea></label>
+        <label class="f"><span>Adjustment decision</span><textarea id="mDecision" rows="2" placeholder="Held 6000 range, split diff vertically"></textarea></label>
+        <div class="row">
+          <button type="button" class="primary" id="printBtn">Print / Save PDF</button>
+          <button type="button" id="copyCsv">Copy table as CSV</button>
+          <button type="button" id="dlCsv">Download CSV</button>
+          <button type="button" id="dlPts">Download adjusted points</button>
+        </div>
+        <p class="hint" id="printHint" hidden>Printing is blocked in this preview. Open the downloaded VRS Control Check file in your browser to print or save a PDF.</p>
+      </section>
+      <section class="panel" aria-labelledby="h-scn">
+        <div class="row" style="justify-content:space-between">
+          <h2 id="h-scn">Compare adjustments</h2>
+          <button type="button" id="saveScn">Save this adjustment</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Adjustment</th><th class="num">Horiz RMS</th><th class="num">Horiz max</th><th class="num">Vert RMS</th><th class="num">Vert max</th><th></th></tr></thead>
+            <tbody id="scnBody"></tbody>
+          </table>
+        </div>
+      </section>
+  </div>
+
+
+  <div class="sheet-outer">
+    <article class="sheet" id="sheet" aria-label="Record sheet"></article>
+  </div>
+</div>
+<div class="toast noprint" id="toast" hidden></div>
+
+<script>
+"use strict";
+// ---------- state ----------
+const D2R = Math.PI / 180;
+const BLANK = () => ({
+  points: {}, order: [],
+  pairs: [],
+  adj: { hm: "none", a: 0, b: 1, pivot: 0, fitScale: false, mBase: "", mTo: "", mPivot: "", mRef: "", mNew: "", mScale: false, vm: "none", vHold: 0, vManual: "" },
+  meta: { project: "", sub: "Control", company: "True South Surveyors", date: new Date().toISOString().slice(0, 10), by: "", range: "", points: "", decision: "" },
+  fmt: { hdp: 4, vdp: 2, order: "PNEZD", exag: "auto" },
+  scenarios: [],
+  example: false,
+});
+let S = BLANK();
+
+// Example job: loaded on first open so the page shows a worked check.
+function exampleJob() {
+  const s = BLANK();
+  s.example = true;
+  // Relative geometry from a real job, moved to made-up base coordinates.
+  const pts = [
+    ["47005", 5367.7300, 4256.6500, 99.3900, "NR"],
+    ["6004", 5358.4200, 4315.3100, 100.8100, "SPK"],
+    ["6002", 5361.6800, 4975.8500, 100.9400, "SPK"],
+    ["6001", 5000.0000, 5000.0000, 100.0000, "SPK"],
+    ["11", 5044.4300, 3327.9100, 81.8400, "NR"],
+    ["V1", 5367.6611, 4256.5826, 99.3691, "ENL"],
+    ["V2", 5370.0968, 4264.7641, 99.8114, "SIR W/CAP"],
+    ["V3", 5371.9459, 4265.6300, 99.8703, "CHK HUB+TAC"],
+    ["V4", 5358.8255, 4315.5570, 100.8381, "EPK"],
+    ["V5", 5361.7557, 4976.1593, 101.0672, "EPK"],
+    ["V6", 5000.0810, 5000.0835, 100.3188, "EPK"],
+    ["V7", 5045.3925, 3328.0105, 82.2618, "ENL"],
+    ["V8", 4687.1252, 3815.4026, 92.5583, "SNL"],
+  ];
+  for (const [p, n, e, z, d] of pts) addPoint(s, { id: p, n, e, z, d });
+  s.pairs = [["V1", "47005"], ["V4", "6004"], ["V5", "6002"], ["V6", "6001"], ["V7", "11"]].map(([v, c]) => ({ v, c, label: "", use: true }));
+  s.adj.hm = "shiftrot"; s.adj.a = 3; s.adj.b = 1; s.adj.vm = "manual"; s.adj.vManual = "-0.08";
+  Object.assign(s.meta, { project: "Example Job", sub: "Control", range: "V1–V8", points: "V2 SIR w/ cap\nV3 chk hub/tac", decision: "Example only. Translation V6 to 6001, rotation of 6001/V4 onto 6001/6004, manual vertical translation of -0.08." });
+  return s;
+}
+
+function addPoint(s, p) {
+  const id = String(p.id).trim();
+  if (!id) return;
+  if (!s.points[id]) s.order.push(id);
+  s.points[id] = { id, n: +p.n, e: +p.e, z: (p.z === "" || p.z == null || isNaN(+p.z)) ? null : +p.z, d: p.d || "" };
+}
+
+// ---------- persistence (per-browser convenience only) ----------
+const KEY = "vrs-control-check-v1";
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function restore() {
+  try { const t = localStorage.getItem(KEY); if (t) { const o = JSON.parse(t); if (o && o.points) return Object.assign(BLANK(), o); } } catch (e) {}
+  return null;
+}
+
+// ---------- parsing ----------
+function parseText(text, order, pStart = 0) {
+  const out = [], bad = [];
+  text.split(/\r?\n/).forEach((line, i) => {
+    const raw = line.trim();
+    if (!raw || raw.startsWith("#") || raw.startsWith("//")) return;
+    let f = raw.includes(",") ? raw.split(",") : raw.includes("\t") ? raw.split("\t") : raw.split(/\s+/);
+    f = f.map(x => x.trim());
+    let p, n, e, z, d;
+    if (order === "NEZ") { [n, e, z] = f; p = "P" + (pStart + out.length + 1); d = f.slice(3).join(" "); }
+    else if (order === "PENZD") { [p, e, n, z] = f; d = f.slice(4).join(raw.includes(",") ? "," : " "); }
+    else { [p, n, e, z] = f; d = f.slice(4).join(raw.includes(",") ? "," : " "); }
+    if (!isFinite(parseFloat(n)) || !isFinite(parseFloat(e))) { if (i > 0 || out.length) bad.push(i + 1); return; }
+    out.push({ id: p, n: parseFloat(n), e: parseFloat(e), z: z === undefined || z === "" ? null : parseFloat(z), d: (d || "").trim() });
+  });
+  return { pts: out, bad };
+}
+
+// Next free number for made-up P# ids, so a second N, E, Z load doesn't overwrite the first
+function nextP() { return S.order.reduce((m, id) => { const k = /^P(\d+)$/.exec(id); return k ? Math.max(m, +k[1]) : m; }, 0); }
+
+async function parseCRD(buf) {
+  const u8 = new Uint8Array(buf);
+  const head = new TextDecoder("latin1").decode(u8.slice(0, 16));
+  if (head.startsWith("SQLite format 3")) return parseSQLiteCRD(u8);
+  const sig = new TextDecoder("latin1").decode(u8.slice(0, 104));
+  if (sig.includes("New CRD Format2")) return parseCarlsonAlpha(u8);
+  return parseBinaryCRD(u8);
+}
+
+// Carlson alphanumeric CRD ("New CRD Format2"): 104-byte header, then 66-byte records of
+// northing, easting, elevation (doubles), 32-byte description, 10-byte point ID.
+function parseCarlsonAlpha(u8) {
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  const str = (a, len) => { let t = ""; for (let i = a; i < a + len; i++) { if (!u8[i]) break; t += String.fromCharCode(u8[i]); } return t.trim(); };
+  const pts = [];
+  for (let k = 104; k + 66 <= u8.length; k += 66) {
+    const id = str(k + 56, 10);
+    if (!id) continue;
+    const z = dv.getFloat64(k + 16, true);
+    pts.push({ id, n: dv.getFloat64(k, true), e: dv.getFloat64(k + 8, true), z: z === 0 ? null : z, d: str(k + 24, 32) });
+  }
+  if (!pts.length) throw new Error("This .crd has no points.");
+  return { pts, note: `Read ${pts.length} points from the Carlson .crd.` };
+}
+
+// Fixed-record binary coordinate file. Carlson does not publish the layout, so this finds the
+// repeating record by looking for runs of three doubles (N, E, Z) at a constant stride.
+function parseBinaryCRD(u8) {
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  const ok = (k) => {
+    if (k + 24 > u8.length) return false;
+    const n = dv.getFloat64(k, true), e = dv.getFloat64(k + 8, true), z = dv.getFloat64(k + 16, true);
+    return isFinite(n) && isFinite(e) && isFinite(z) && Math.abs(n) > 1 && Math.abs(n) < 1e8 && Math.abs(e) > 1 && Math.abs(e) < 1e8 && Math.abs(z) < 50000;
+  };
+  const hits = [];
+  for (let k = 0; k + 24 <= u8.length; k++) { if (ok(k)) { hits.push(k); k += 23; } }
+  if (hits.length < 2) throw new Error("No coordinate records found in this .crd file. Export the points from Carlson as a PNEZD .txt and load that instead.");
+  const gaps = {};
+  for (let i = 1; i < hits.length; i++) { const g = hits[i] - hits[i - 1]; if (g >= 24 && g <= 512) gaps[g] = (gaps[g] || 0) + 1; }
+  const stride = +Object.entries(gaps).sort((a, b) => b[1] - a[1])[0][0];
+  // group hits into records on that stride
+  const first = hits.find(k => hits.includes(k + stride)) ?? hits[0];
+  const phase = first % stride;
+  const recs = hits.filter(k => k % stride === phase);
+  const txt = (a, b) => {
+    let best = "", cur = "";
+    for (let i = a; i < b && i < u8.length; i++) {
+      const c = u8[i];
+      if (c >= 32 && c < 127) cur += String.fromCharCode(c); else { if (cur.trim().length > best.trim().length) best = cur; cur = ""; }
+    }
+    if (cur.trim().length > best.trim().length) best = cur;
+    return best.trim();
+  };
+  // point number: an int32 near the coordinates that steps with the record position, else the record position
+  const recIndex = k => Math.round((k - phase) / stride);
+  const pts = [];
+  let idSource = "record position";
+  let idOff = null;
+  for (const off of [-4, -8, 24, 28, 32, 36, 40, 44, 48, 52, 56]) {
+    let good = 0;
+    const sample = recs.slice(0, 50);
+    if (sample[0] + off < 0 || sample[0] + off + 4 > u8.length) continue;
+    const ref = dv.getInt32(sample[0] + off, true) - recIndex(sample[0]);
+    for (const k of sample) {
+      const at = k + off; if (at < 0 || at + 4 > u8.length) continue;
+      const v = dv.getInt32(at, true);
+      if (v > 0 && v < 1e7 && v - recIndex(k) === ref) good++;
+    }
+    if (sample.length > 1 && good >= sample.length * 0.9) { idOff = off; idSource = "stored point number"; break; }
+  }
+  for (const k of recs) {
+    const id = idOff != null ? String(dv.getInt32(k + idOff, true)) : String(recIndex(k) - recIndex(recs[0]) + 1);
+    pts.push({ id, n: dv.getFloat64(k, true), e: dv.getFloat64(k + 8, true), z: dv.getFloat64(k + 16, true), d: txt(k + 24, k + stride) });
+  }
+  return { pts, note: `Read ${pts.length} points from a binary .crd (point numbers from ${idSource}). Spot-check a few against Carlson's point list.` };
+}
+
+function loadScript(src, integrity) {
+  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; if (integrity) { s.integrity = integrity; s.crossOrigin = "anonymous"; } s.onload = res; s.onerror = () => rej(new Error("Could not load the SQLite reader. Check your internet connection, or load a .txt export.")); document.head.appendChild(s); });
+}
+async function parseSQLiteCRD(u8) {
+  // Pinned by hash so a changed CDN file is refused instead of run
+  if (!window.initSqlJs) await loadScript("https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-asm.js", "sha384-lJQGJ26r89i4hDPcMDnFg2BHiI4bG8U6LYvE+KO1QalxaV6JPstYbnO+7gKh0RwD");
+  const SQL = await window.initSqlJs();
+  const db = new SQL.Database(u8);
+  const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table'")[0]?.values.map(r => r[0]) || [];
+  for (const t of tables) {
+    const cols = db.exec(`PRAGMA table_info("${t}")`)[0]?.values.map(r => String(r[1])) || [];
+    const find = (...res) => cols.find(c => res.some(r => r.test(c)));
+    const cn = find(/^north/i, /^n$/i, /^y$/i), ce = find(/^east/i, /^e$/i, /^x$/i);
+    if (!cn || !ce) continue;
+    const cz = find(/^elev/i, /^z$/i, /^height/i), cd = find(/^desc/i, /^note/i, /^code/i), cp = find(/^(point|pt).*(id|num|no|name)?$/i, /^name$/i, /^id$/i);
+    const q = `SELECT ${[cp, cn, ce, cz, cd].map(c => c ? `"${c}"` : "NULL").join(",")} FROM "${t}"`;
+    const rows = db.exec(q)[0]?.values || [];
+    const pts = rows.map((r, i) => ({ id: r[0] != null ? String(r[0]) : String(i + 1), n: +r[1], e: +r[2], z: r[3] == null ? null : +r[3], d: r[4] == null ? "" : String(r[4]) })).filter(p => isFinite(p.n) && isFinite(p.e));
+    if (pts.length) return { pts, note: `Read ${pts.length} points from table "${t}" in a database-style .crd. Spot-check a few against Carlson's point list.` };
+  }
+  throw new Error("This .crd is a database file, but no point table was recognized. Load a PNEZD .txt export instead.");
+}
+
+// ---------- geometry ----------
+const norm360 = a => ((a % 360) + 360) % 360;
+function inverse(from, to) {
+  const dn = to.n - from.n, de = to.e - from.e;
+  const h = Math.hypot(dn, de);
+  const az = norm360(Math.atan2(de, dn) / D2R);
+  const v = (from.z != null && to.z != null) ? to.z - from.z : null;
+  return { h, az, v };
+}
+function dms(deg, secDp = 0) {
+  let d = Math.floor(deg), mf = (deg - d) * 60, m = Math.floor(mf), s = (mf - m) * 60;
+  s = +s.toFixed(secDp);
+  if (s >= 60) { s -= 60; m++; } if (m >= 60) { m -= 60; d++; }
+  return { d, m, s };
+}
+function bearing(az, h) {
+  if (h < 1e-9) return "—";
+  let ns, ew, a;
+  if (az <= 90) { ns = "N"; ew = "E"; a = az; } else if (az <= 180) { ns = "S"; ew = "E"; a = 180 - az; }
+  else if (az <= 270) { ns = "S"; ew = "W"; a = az - 180; } else { ns = "N"; ew = "W"; a = 360 - az; }
+  const { d, m, s } = dms(a);
+  return `${ns} ${String(d).padStart(2, "0")}°${String(m).padStart(2, "0")}'${String(s).padStart(2, "0")}" ${ew}`;
+}
+// Clockwise-positive degrees -> "0°01'37.0" counterclockwise"
+function rotWords(deg) {
+  const { d, m, s } = dms(Math.abs(deg), 1);
+  const mag = `${d}°${String(m).padStart(2, "0")}'${s.toFixed(1).padStart(4, "0")}"`;
+  return Math.abs(deg) < 1e-9 ? "0°00'00\"" : `${mag} ${deg > 0 ? "clockwise" : "counterclockwise"}`;
+}
+// AutoCAD ROTATE angle (counterclockwise-positive), e.g. 0d01'37.0"
+function acadAngle(deg) {
+  const ccw = -deg, { d, m, s } = dms(Math.abs(ccw), 1);
+  return `${ccw < 0 ? "-" : ""}${d}d${String(m).padStart(2, "0")}'${s.toFixed(1)}"`;
+}
+function angleStr(deg) {
+  const sign = deg < 0 ? "−" : "+";
+  const { d, m, s } = dms(Math.abs(deg), 1);
+  return `${sign}${d}°${String(m).padStart(2, "0")}'${s.toFixed(1).padStart(4, "0")}"`;
+}
+// "−0 12 30", "-0°12'30\"", or decimal degrees
+function parseAngle(t) {
+  t = String(t || "").trim().replace("−", "-");
+  if (!t) return 0;
+  const neg = t.startsWith("-");
+  const parts = t.replace(/^[+-]/, "").split(/[^0-9.]+/).filter(Boolean).map(Number);
+  if (!parts.length || parts.some(isNaN)) return NaN;
+  const v = parts.length === 1 ? parts[0] : parts[0] + (parts[1] || 0) / 60 + (parts[2] || 0) / 3600;
+  return neg ? -v : v;
+}
+// Translation m, then rotation theta (clockwise degrees) and scale sc about Q (Q is where it sits after the translation)
+function makeT(m, theta, sc, Q, dZ) {
+  const c = Math.cos(theta * D2R) * sc, s = Math.sin(theta * D2R) * sc;
+  return {
+    m, theta, sc, Q, dZ,
+    apply(p) {
+      const dn = p.n + m.n - Q.n, de = p.e + m.e - Q.e;
+      return { id: p.id, d: p.d, n: Q.n + dn * c - de * s, e: Q.e + dn * s + de * c, z: p.z == null ? null : p.z + dZ };
+    },
+  };
+}
+
+function activePairs() {
+  return S.pairs.map((p, i) => ({ ...p, i, V: S.points[p.v], C: S.points[p.c] })).filter(p => p.V && p.C);
+}
+
+function solve() {
+  const pairs = activePairs();
+  const A = S.adj;
+  const res = { m: { n: 0, e: 0 }, theta: 0, sc: 1, Q: null, Qname: "", dZ: 0, hDesc: "None", vDesc: "None", err: [], seed: null };
+  const pick = idx => pairs.find(p => p.i === +idx);
+  const norm180 = a => ((a + 540) % 360) - 180;
+  // horizontal
+  if (A.hm === "shift" || A.hm === "shiftrot") {
+    const pa = pick(A.a);
+    if (!pa) res.err.push("Choose the pair to hold.");
+    else {
+      res.m = { n: pa.C.n - pa.V.n, e: pa.C.e - pa.V.e };
+      res.Q = { n: pa.C.n, e: pa.C.e }; res.Qname = pa.c; res.mNote = `${pa.v} → ${pa.c}`;
+      res.hDesc = `Translation ${pa.v} → ${pa.c}`;
+      res.seed = { mBase: pa.v, mTo: pa.c, mPivot: "", mRef: "", mNew: "", mScale: false };
+      if (A.hm === "shiftrot") {
+        const pb = pick(A.b);
+        if (!pb || pb.i === pa.i) res.err.push("Choose a different pair for the rotation.");
+        else {
+          const fromAz = inverse(pa.V, pb.V).az, toAz = inverse(pa.C, pb.C).az;
+          res.theta = norm180(toAz - fromAz);
+          res.ref = { from: `${pa.v} → ${pb.v}`, fromAz, to: `${pa.c} → ${pb.c}`, toAz };
+          res.hDesc += `; rotation ${pa.v}→${pb.v} onto ${pa.c}→${pb.c}`;
+          res.seed = { mBase: pa.v, mTo: pa.c, mPivot: "", mRef: pb.v, mNew: pb.c, mScale: false };
+        }
+      }
+    }
+  } else if (A.hm === "avg") {
+    const use = pairs.filter(p => p.use);
+    if (!use.length) res.err.push("Translation (average) needs at least one pair ticked for Fit.");
+    else {
+      res.m = { n: use.reduce((s, p) => s + p.C.n - p.V.n, 0) / use.length, e: use.reduce((s, p) => s + p.C.e - p.V.e, 0) / use.length };
+      res.Q = { n: use[0].C.n, e: use[0].C.e }; res.Qname = use[0].c; res.mNote = `average of ${use.length} fit pairs`;
+      res.hDesc = `Translation (average of ${use.length} fit pairs: ${use.map(p => p.v).join(", ")})`;
+    }
+  } else if (A.hm === "fit") {
+    const use = pairs.filter(p => p.use);
+    if (use.length < 2) res.err.push("Best fit needs at least two pairs ticked for Fit.");
+    else {
+      const k = use.length;
+      const cv = { n: use.reduce((s, p) => s + p.V.n, 0) / k, e: use.reduce((s, p) => s + p.V.e, 0) / k };
+      const cc = { n: use.reduce((s, p) => s + p.C.n, 0) / k, e: use.reduce((s, p) => s + p.C.e, 0) / k };
+      let sx = 0, sy = 0, den = 0;
+      for (const p of use) {
+        const an = p.V.n - cv.n, ae = p.V.e - cv.e, bn = p.C.n - cc.n, be = p.C.e - cc.e;
+        sy += an * be - ae * bn; sx += an * bn + ae * be; den += an * an + ae * ae;
+      }
+      const th = Math.atan2(sy, sx) / D2R, sc = A.fitScale ? Math.hypot(sx, sy) / den : 1;
+      const pv = pick(A.pivot) || use[0];
+      const Q = { n: pv.C.n, e: pv.C.e };
+      // T(p) = cc + sc·R(p − cv), written as translation m then rotation/scale about Q
+      const c = Math.cos(-th * D2R), s = Math.sin(-th * D2R), dn = (cc.n - Q.n) / sc, de = (cc.e - Q.e) / sc;
+      res.m = { n: dn * c - de * s + Q.n - cv.n, e: dn * s + de * c + Q.e - cv.e };
+      res.theta = th; res.sc = sc; res.Q = Q; res.Qname = pv.c;
+      res.hDesc = `Best fit (least squares): translation + rotation${A.fitScale ? " + scale" : ""}, on ${use.map(p => p.v).join(", ")}`;
+    }
+  } else if (A.hm === "manual") {
+    const id = x => (x || "").trim();
+    const B = S.points[id(A.mBase)], To = S.points[id(A.mTo)], Rf = S.points[id(A.mRef)], Nw = S.points[id(A.mNew)];
+    const pvId = id(A.mPivot) || id(A.mBase), Pv = S.points[pvId];
+    if (!B) res.err.push(id(A.mBase) ? `Base point "${id(A.mBase)}" isn't in the point list.` : "Choose a base point (usually a V point).");
+    else if (id(A.mTo) && !To) res.err.push(`Translation point "${id(A.mTo)}" isn't in the point list.`);
+    else if (!Pv) res.err.push(`Rotation base point "${pvId}" isn't in the point list.`);
+    else if (id(A.mRef) && !Rf) res.err.push(`Reference point "${id(A.mRef)}" isn't in the point list.`);
+    else if (id(A.mNew) && !Nw) res.err.push(`New bearing point "${id(A.mNew)}" isn't in the point list.`);
+    else if (!!Rf !== !!Nw) res.err.push("Rotation needs both a reference point and a new bearing point.");
+    else {
+      res.m = To ? { n: To.n - B.n, e: To.e - B.e } : { n: 0, e: 0 };
+      // A control point stays put; a VRS point moves with the translation before the rotation
+      const fixed = k => pairs.some(p => p.c === k) && !pairs.some(p => p.v === k);
+      const moved = (pt, k) => fixed(k) ? { n: pt.n, e: pt.e } : { n: pt.n + res.m.n, e: pt.e + res.m.e };
+      const pvFixed = fixed(pvId), own = pvId === id(A.mBase);
+      res.Q = moved(Pv, pvId);
+      res.Qname = own && To ? id(A.mTo) : pvId;
+      if (pvFixed) res.qLabel = pvId;
+      res.mNote = To ? `${id(A.mBase)} → ${id(A.mTo)}` : "";
+      const parts = [To ? `translation ${id(A.mBase)} → ${id(A.mTo)}` : "no translation"];
+      if (Rf) {
+        const r = inverse(res.Q, moved(Rf, id(A.mRef))), n = inverse(res.Q, moved(Nw, id(A.mNew)));
+        if (r.h < 1e-6 || n.h < 1e-6) res.err.push("The reference and new bearing points must be away from the rotation base point.");
+        else {
+          res.theta = norm180(n.az - r.az);
+          res.ref = { from: `${pvId} → ${id(A.mRef)}`, fromAz: r.az, to: `${res.Qname} → ${id(A.mNew)}`, toAz: n.az };
+          parts.push(`rotation about ${res.Qname}, ${pvId}→${id(A.mRef)} onto ${res.Qname}→${id(A.mNew)}`);
+          if (A.mScale) { res.sc = n.h / r.h; parts.push(`scale ${fmt(r.h, 3)} → ${fmt(n.h, 3)} ft`); }
+        }
+      }
+      res.hDesc = "Manual: " + parts.join("; ");
+    }
+  }
+  // vertical
+  const vPairs = pairs.filter(p => p.V.z != null && p.C.z != null);
+  if (A.vm === "hold") {
+    const p = vPairs.find(q => q.i === +A.vHold);
+    if (!p) res.err.push("Choose the pair to hold vertically.");
+    else { res.dZ = p.C.z - p.V.z; res.vDesc = `Hold ${p.c} elevation (${p.v} → ${p.c})`; }
+  } else if (A.vm === "mean" || A.vm === "mid") {
+    const use = vPairs.filter(p => p.use).map(p => p.C.z - p.V.z);
+    if (!use.length) res.err.push("No ticked pairs have elevations.");
+    else if (A.vm === "mean") { res.dZ = use.reduce((a, b) => a + b, 0) / use.length; res.vDesc = `Average of ${use.length} fit pairs`; }
+    else { res.dZ = (Math.max(...use) + Math.min(...use)) / 2; res.vDesc = `Split the range of ${use.length} fit pairs`; }
+  } else if (A.vm === "manual") {
+    const v = parseFloat(A.vManual);
+    if (isNaN(v)) res.err.push("Enter the vertical adjustment as a number.");
+    else { res.dZ = v; res.vDesc = "Manual"; }
+  }
+  if (!res.Q) { res.Q = pairs[0] ? { n: pairs[0].C.n, e: pairs[0].C.e } : { n: 0, e: 0 }; res.Qname = pairs[0]?.c || ""; }
+  if (!res.seed && pairs.find(p => p.use)) { const p0 = pairs.find(p => p.use); res.seed = { mBase: p0.v, mTo: p0.c, mPivot: "", mRef: "", mNew: "", mScale: false }; }
+  res.T = makeT(res.m, res.theta, res.sc, res.Q, res.dZ);
+  res.pairs = pairs;
+  res.rows = pairs.map(p => {
+    const b = inverse(p.V, p.C), Va = res.T.apply(p.V), a = inverse(Va, p.C);
+    return { p, b, a, Va };
+  });
+  res.hasAdj = S.adj.hm !== "none" || S.adj.vm !== "none";
+  res.stats = stats(res.rows);
+  return res;
+}
+function stats(rows) {
+  const use = rows.filter(r => r.p.use);
+  const rms = a => a.length ? Math.sqrt(a.reduce((s, x) => s + x * x, 0) / a.length) : null;
+  const mx = a => a.length ? Math.max(...a.map(Math.abs)) : null;
+  const hb = use.map(r => r.b.h), ha = use.map(r => r.a.h);
+  const vb = use.filter(r => r.b.v != null).map(r => r.b.v), va = use.filter(r => r.a.v != null).map(r => r.a.v);
+  return { hRmsB: rms(hb), hRmsA: rms(ha), hMaxB: mx(hb), hMaxA: mx(ha), vRmsB: rms(vb), vRmsA: rms(va), vMaxB: mx(vb), vMaxA: mx(va), n: use.length };
+}
+
+// ---------- formatting ----------
+const fmt = (x, dp) => x == null || isNaN(x) ? "—" : x.toFixed(dp);
+function fmtSigned(x, dp) { if (x == null || isNaN(x)) return "—"; const s = Math.abs(x).toFixed(dp); return (x < 0 && +s !== 0 ? "−" : "+") + s; }
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+
+// ---------- plot ----------
+const MODE_HELP = {
+  none: "No horizontal adjustment.",
+  shift: "Translation: moves every VRS point the same amount so one VRS point lands on its control point.",
+  avg: "Translation by the average difference of the pairs ticked Fit. No rotation or scale.",
+  shiftrot: "Translation onto one pair, then rotation about that control point so a second pair's bearing matches the control bearing.",
+  fit: "Least squares: the translation and rotation (and scale, if ticked) that make the squared misses of all pairs ticked Fit as small as possible.",
+  manual: "Pick a base point and where to translate it, then a rotation base point (the same one unless you change it) with a reference and new bearing. Picking Manual after another option starts from that option's points.",
+};
+function niceNum(x) { const p = Math.pow(10, Math.floor(Math.log10(x))), f = x / p; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p; }
+function plotSVG(R, W, H) {
+  const rows = R.rows;
+  if (rows.length < 1) return `<svg viewBox="0 0 ${W} 80"><text class="pl-sub" x="${W / 2}" y="44" text-anchor="middle">Add pairs to see the plot.</text></svg>`;
+  const C = rows.map(r => r.p.C);
+  const cn = C.reduce((a, c) => a + c.n, 0) / C.length, ce = C.reduce((a, c) => a + c.e, 0) / C.length;
+  const extN = Math.max(...C.map(c => c.n)) - Math.min(...C.map(c => c.n)), extE = Math.max(...C.map(c => c.e)) - Math.min(...C.map(c => c.e));
+  const ext = Math.max(extN, extE, 1);
+  const maxRes = Math.max(...rows.map(r => Math.max(r.b.h, R.hasAdj ? r.a.h : 0)), 1e-6);
+  let k = S.fmt.exag === "auto" ? niceNum(0.09 * ext / maxRes) : +S.fmt.exag;
+  if (rows.length === 1) k = 1;
+  const disp = (c, v) => ({ n: c.n + k * (v.n - c.n), e: c.e + k * (v.e - c.e) });
+  const items = rows.map(r => ({ r, c: r.p.C, b: disp(r.p.C, r.p.V), a: disp(r.p.C, r.Va), ang: Math.atan2(r.p.C.n - cn, r.p.C.e - ce) }))
+    .sort((x, y) => x.ang - y.ang);
+  const all = items.flatMap(it => R.hasAdj ? [it.c, it.b, it.a] : [it.c, it.b]);
+  let n0 = Math.min(...all.map(p => p.n)), n1 = Math.max(...all.map(p => p.n)), e0 = Math.min(...all.map(p => p.e)), e1 = Math.max(...all.map(p => p.e));
+  const pad = 46, sc = Math.min((W - 2 * pad) / Math.max(e1 - e0, 1e-6), (H - 2 * pad - 20) / Math.max(n1 - n0, 1e-6));
+  const ox = (W - sc * (e1 - e0)) / 2, oy = (H - 20 - sc * (n1 - n0)) / 2;
+  const X = p => (ox + (p.e - e0) * sc).toFixed(1), Y = p => (oy + (n1 - p.n) * sc).toFixed(1);
+  const poly = (pts, cls) => pts.length > 2 ? `<polygon class="${cls}" points="${pts.map(p => X(p) + "," + Y(p)).join(" ")}"/>` : pts.length === 2 ? `<polyline class="${cls}" points="${pts.map(p => X(p) + "," + Y(p)).join(" ")}"/>` : "";
+  let g = "";
+  if (R.hasAdj) g += poly(items.map(i => i.a), "pl-after-fill");
+  g += poly(items.map(i => i.c), "pl-ctrl");
+  g += poly(items.map(i => i.b), "pl-before");
+  if (R.hasAdj) g += poly(items.map(i => i.a), "pl-after");
+  for (const it of items) {
+    g += `<line class="pl-vec-b" x1="${X(it.c)}" y1="${Y(it.c)}" x2="${X(it.b)}" y2="${Y(it.b)}"/>`;
+    if (R.hasAdj) g += `<line class="pl-vec-a" x1="${X(it.c)}" y1="${Y(it.c)}" x2="${X(it.a)}" y2="${Y(it.a)}"/>`;
+  }
+  const boxes = [];
+  for (const it of items) {
+    const x = +X(it.c), y = +Y(it.c);
+    g += `<rect class="pl-ctrl-pt" x="${x - 3.5}" y="${y - 3.5}" width="7" height="7"/>`;
+    g += `<circle class="pl-before-pt" cx="${X(it.b)}" cy="${Y(it.b)}" r="3.6"/>`;
+    if (R.hasAdj) g += `<circle class="pl-after-pt" cx="${X(it.a)}" cy="${Y(it.a)}" r="3.4"/>`;
+    const ux = Math.cos(it.ang), uy = -Math.sin(it.ang), lx = x + ux * 16;
+    let ly = y + uy * 16 + 4;
+    const anchor = ux > 0.3 ? "start" : ux < -0.3 ? "end" : "middle";
+    const wpx = 7 * Math.max(it.r.p.c.length, it.r.p.v.length + 2), x0 = anchor === "start" ? lx : anchor === "end" ? lx - wpx : lx - wpx / 2;
+    const hits = b => !(x0 + wpx < b.x0 || b.x0 + b.w < x0 || ly + 14 < b.y - 12 || b.y + 14 < ly - 12);
+    for (let tries = 0; tries < 6 && boxes.some(hits); tries++) ly += (uy > 0 ? 1 : -1) * 28;
+    boxes.push({ x0, w: wpx, y: ly });
+    g += `<text class="pl-txt" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}">${esc(it.r.p.c)}</text>`;
+    g += `<text class="pl-sub" x="${lx.toFixed(1)}" y="${(ly + 12).toFixed(1)}" text-anchor="${anchor}">${esc(it.r.p.v)}${it.r.p.use ? "" : " (check)"}</text>`;
+  }
+  // error scale bar and north arrow
+  const barFt = niceNum(maxRes / 2), barPx = barFt * k * sc;
+  const by = H - 14;
+  g += `<path class="pl-axis" d="M14 ${by} h${barPx.toFixed(1)} M14 ${by - 4} v8 M${(14 + barPx).toFixed(1)} ${by - 4} v8"/>`;
+  g += `<text class="pl-sub" x="${(20 + barPx).toFixed(1)}" y="${by + 4}">${barFt.toFixed(barFt < 0.01 ? 3 : 2)} ft error · errors ×${k.toLocaleString()}</text>`;
+  g += `<path class="pl-axis" d="M${W - 18} ${H - 10} v-30 M${W - 23} ${H - 33} l5 -7 l5 7"/><text class="pl-sub" x="${W - 18}" y="${H - 44}" text-anchor="middle">N</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Plot of control points with VRS errors before and after adjustment">${g}</svg>`;
+}
+function legendHTML(hasAdj) {
+  const sw = (cls, pt) => `<svg viewBox="0 0 26 10"><line class="${cls}" x1="0" y1="5" x2="26" y2="5"/>${pt}</svg>`;
+  return `<span>${sw("pl-ctrl", `<rect class="pl-ctrl-pt" x="9.5" y="1.5" width="7" height="7"/>`)}Control</span>
+    <span>${sw("pl-before", `<circle class="pl-before-pt" cx="13" cy="5" r="3.4"/>`)}VRS before</span>
+    ${hasAdj ? `<span>${sw("pl-after", `<circle class="pl-after-pt" cx="13" cy="5" r="3.2"/>`)}VRS after</span>` : ""}`;
+}
+
+// ---------- render ----------
+const $ = id => document.getElementById(id);
+function pairOptions(sel, filter = () => true) {
+  return activePairs().filter(filter).map(p => `<option value="${p.i}" ${+sel === p.i ? "selected" : ""}>${esc(p.v)} → ${esc(p.c)}</option>`).join("");
+}
+function renderPoints() {
+  $("ptCount").textContent = S.order.length;
+  $("ptBody").innerHTML = S.order.map(id => { const p = S.points[id]; return `<tr><td class="mono">${esc(id)}</td><td class="num">${fmt(p.n, 3)}</td><td class="num">${fmt(p.e, 3)}</td><td class="num">${p.z == null ? "—" : fmt(p.z, 3)}</td><td>${esc(p.d)}</td></tr>`; }).join("") || `<tr><td colspan="5" class="empty">No points loaded.</td></tr>`;
+  $("ptList").innerHTML = S.order.map(id => `<option value="${esc(id)}">${esc(S.points[id].d)}</option>`).join("");
+  if (!$("ptStatus").dataset.msg) $("ptStatus").textContent = S.example ? "Example data is loaded. Load your .crd or .txt to replace it." : (S.order.length ? `${S.order.length} points loaded.` : "Load the job's coordinate file to begin.");
+}
+// Nearest point that isn't a VRS, adjusted (A#) or temp (D#) point, within 5 ft
+const SUGGEST_FT = 5;
+function suggestControl(vId, skip) {
+  const V = S.points[vId]; if (!V) return null;
+  const used = new Set(S.pairs.filter((p, j) => j !== skip).map(p => p.c));
+  const vrs = new Set(S.pairs.map(p => p.v));
+  const cands = [];
+  for (const id of S.order) {
+    if (id === vId || vrs.has(id) || used.has(id) || /^[VAD]\d+$/i.test(id)) continue;
+    const P = S.points[id], h = Math.hypot(P.n - V.n, P.e - V.e);
+    if (h <= SUGGEST_FT) cands.push({ id, h, d: !!P.d });
+  }
+  cands.sort((a, b) => a.h - b.h);
+  // Engineers often list the same spot twice (e.g. 3180 and 6004 SPK); prefer the one with a description
+  const near = cands.filter(c => c.h - (cands[0]?.h ?? 0) < 0.1);
+  return near.find(c => c.d) || cands[0] || null;
+}
+// Fill the control point and label from the V point, unless they were typed by hand
+function fillFromV(i) {
+  const p = S.pairs[i], V = S.points[p.v];
+  if (!V) { if (p.cAuto) p.c = ""; if (p.labelAuto) p.label = ""; return; }
+  if (!p.c || p.cAuto) { const g = suggestControl(p.v, i); p.c = g ? g.id : ""; p.cAuto = true; p.cDist = g ? g.h : null; }
+  if (!p.label || p.labelAuto) { p.label = V.d || ""; p.labelAuto = true; }
+}
+function renderPairs() {
+  $("pairBody").innerHTML = S.pairs.map((p, i) => {
+    const okV = !!S.points[p.v], okC = !!S.points[p.c];
+    return `<tr>
+      <td><input type="text" class="id" list="ptList" data-i="${i}" data-k="v" value="${esc(p.v)}" aria-label="VRS point" style="${p.v && !okV ? "border-color:var(--bad)" : ""}"></td>
+      <td style="color:var(--muted)">→</td>
+      <td><input type="text" class="id" list="ptList" data-i="${i}" data-k="c" value="${esc(p.c)}" aria-label="Control point" title="${p.cAuto && p.c ? `Suggested: nearest control point, ${fmt(p.cDist ?? 0, 2)} ft away` : ""}" style="${p.c && !okC ? "border-color:var(--bad)" : p.cAuto && p.c ? "font-style:italic" : ""}"></td>
+      <td><input type="text" data-i="${i}" data-k="label" value="${esc(p.label)}" placeholder="${esc((S.points[p.c] || {}).d || "")}" aria-label="Label"></td>
+      <td><input type="checkbox" data-i="${i}" data-k="use" ${p.use ? "checked" : ""} aria-label="Use in fit"></td>
+      <td><button type="button" class="ghost" data-del="${i}" aria-label="Remove pair">✕</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6" class="empty">No pairs yet. Add one, or paste a list.</td></tr>`;
+}
+function renderAdjOptions() {
+  const A = S.adj;
+  document.querySelectorAll('input[name=hm]').forEach(r => r.checked = r.value === A.hm);
+  document.querySelectorAll('input[name=vm]').forEach(r => r.checked = r.value === A.vm);
+  let h = "";
+  if (A.hm === "shift" || A.hm === "shiftrot") {
+    h += `<label class="f"><span>Translation: hold this pair (VRS point lands on control)</span><select id="aA">${pairOptions(A.a)}</select></label>`;
+    if (A.hm === "shiftrot") h += `<label class="f"><span>Rotation: match this pair's bearing</span><select id="aB">${pairOptions(A.b)}</select></label>`;
+  } else if (A.hm === "fit") {
+    h += `<label class="chk"><input type="checkbox" id="aFitScale" ${A.fitScale ? "checked" : ""}> Include scale</label>
+          <label class="f"><span>Rotation${A.fitScale ? " and scale" : ""} about the control point of</span><select id="aPivot">${pairOptions(A.pivot)}</select></label>`;
+  } else if (A.hm === "manual") {
+    const ph = activePairs();
+    h += `<label class="f"><span>Translation base point</span><input type="text" id="aBase" list="ptList" value="${esc(A.mBase)}" placeholder="${esc(ph[0]?.v || "V6")}"></label>
+      <div class="mgroup"><b>Translation</b>
+        <label class="f"><span>Base point to (blank = none)</span><input type="text" id="aTo" list="ptList" value="${esc(A.mTo)}" placeholder="${esc(ph[0]?.c || "6001")}"></label></div>
+      <div class="mgroup"><b>Rotation</b><span class="hint" style="margin:0">Turns the rotation base → reference bearing onto the rotation base → new bearing point. A VRS rotation base moves with the translation first; a control point stays put.</span>
+        <label class="f"><span>Rotation base point (blank = same as translation base)</span><input type="text" id="aPv" list="ptList" value="${esc(A.mPivot)}" placeholder="${esc(A.mBase || ph[0]?.v || "V6")}"></label>
+        <div class="two">
+        <label class="f"><span>Reference point</span><input type="text" id="aRef" list="ptList" value="${esc(A.mRef)}" placeholder="${esc(ph[1]?.v || "V4")}"></label>
+        <label class="f"><span>New bearing point</span><input type="text" id="aNew" list="ptList" value="${esc(A.mNew)}" placeholder="${esc(ph[1]?.c || "6004")}"></label></div>
+        <label class="chk"><input type="checkbox" id="aMScale" ${A.mScale ? "checked" : ""}> Scale too (reference distance to new bearing distance)</label></div>`;
+  }
+  $("hOpts").innerHTML = h; $("hOpts").hidden = !h;
+  $("hHelp").textContent = MODE_HELP[A.hm] || "";
+  let v = "";
+  if (A.vm === "hold") v = `<label class="f"><span>Hold the elevation of</span><select id="aVHold">${pairOptions(A.vHold, p => p.V.z != null && p.C.z != null)}</select></label>`;
+  if (A.vm === "manual") v = `<label class="f" style="max-width:200px"><span>Vertical translation (negative lowers)</span><input type="text" id="aVMan" value="${esc(A.vManual)}" placeholder="-0.08"></label>`;
+  if (A.vm === "mean" || A.vm === "mid") v = `<p class="hint">Uses the pairs ticked for Fit.</p>`;
+  $("vOpts").innerHTML = v; $("vOpts").hidden = !v;
+}
+function chg(b, a, dp) {
+  if (b == null || a == null) return "";
+  const d = a - b;
+  if (Math.abs(d) < Math.pow(10, -dp) / 2) return `<span class="chg">no change</span>`;
+  return `<span class="chg ${d < 0 ? "delta-good" : "delta-bad"}">${d < 0 ? "▼" : "▲"} ${Math.abs(d).toFixed(dp)}</span>`;
+}
+let R = null;
+// Translation as a bearing and distance, e.g. "S 24°13'05" W 0.0790"
+function moveBD(m, dp) { const h = Math.hypot(m.n, m.e); return h < 1e-9 ? "" : `${bearing((Math.atan2(m.e, m.n) / D2R + 360) % 360, h)} ${fmt(h, dp)}`; }
+function renderResults() {
+  R = solve();
+  const { hdp, vdp } = S.fmt, st = R.stats;
+  const p = $("params");
+  const rot = Math.abs(R.theta) > 1e-9, scl = Math.abs(R.sc - 1) > 1e-12;
+  const ppm = (R.sc - 1) * 1e6;
+  p.innerHTML = R.err.length ? `<span style="color:var(--bad)">${R.err.map(esc).join("<br>")}</span>` :
+    `<span class="lbl">1 · Translation</span>
+     <span>N ${fmtSigned(R.m.n, hdp)}  E ${fmtSigned(R.m.e, hdp)}${R.mNote ? ` <span style="color:var(--muted)">(${esc(R.mNote)})</span>` : ""}</span>
+     ${moveBD(R.m, hdp) ? `<span>${moveBD(R.m, hdp)}</span>` : ""}
+     <span class="lbl" style="margin-top:6px">2 · Rotation</span>
+     ${rot ? `<span>${rotWords(R.theta)} about ${esc(R.Qname)}</span>
+     ${R.ref ? `<span style="color:var(--muted)">Reference ${esc(R.ref.from)} ${bearing(R.ref.fromAz, 1)}<br>New ${esc(R.ref.to)} ${bearing(R.ref.toAz, 1)}</span>` : ""}
+     <span style="color:var(--muted)">AutoCAD ROTATE angle: ${acadAngle(R.theta)}</span>` : `<span>None</span>`}
+     <span class="lbl" style="margin-top:6px">3 · Scale</span>
+     <span>${scl ? `×${R.sc.toFixed(8)} (${ppm >= 0 ? "+" : "−"}${Math.abs(ppm).toFixed(1)} ppm) about ${esc(R.Qname)}` : "None"}</span>
+     ${rot || scl ? `<span style="color:var(--muted)">${esc(R.qLabel || R.Qname + " after translation")}: N ${fmt(R.Q.n, 3)}, E ${fmt(R.Q.e, 3)}</span>` : ""}
+     <span class="lbl" style="margin-top:6px">Vertical translation</span>
+     <span>Z ${fmtSigned(R.dZ, vdp)}</span>`;
+  $("stats").innerHTML = [
+    ["Horiz RMS", st.hRmsB, st.hRmsA, hdp], ["Horiz max", st.hMaxB, st.hMaxA, hdp],
+    ["Vert RMS", st.vRmsB, st.vRmsA, vdp], ["Vert max", st.vMaxB, st.vMaxA, vdp],
+  ].map(([l, b, a, dp]) => `<div class="stat"><small>${l}</small><b>${fmt(R.hasAdj ? a : b, dp)}</b>${R.hasAdj ? chg(b, a, dp) : `<span class="chg" style="color:var(--muted)">fit pairs: ${st.n}</span>`}</div>`).join("");
+  $("resBody").innerHTML = R.rows.map(({ p, b, a }) => `<tr>
+      <td class="mono">${esc(p.v)} → ${esc(p.c)} ${p.use ? "" : `<span class="pill check">check</span>`}</td>
+      <td class="mono cb first">${bearing(b.az, b.h)}</td><td class="num cb">${fmt(b.h, hdp)}</td><td class="num cb">${fmtSigned(b.v, vdp)}</td>
+      <td class="mono ca first">${R.hasAdj ? bearing(a.az, a.h) : ""}</td><td class="num ca">${R.hasAdj ? fmt(a.h, hdp) : ""}</td><td class="num ca">${R.hasAdj ? fmtSigned(a.v, vdp) : ""}</td>
+    </tr>`).join("") || `<tr><td colspan="7" class="empty">Add pairs to see distances.</td></tr>`;
+  $("plot").innerHTML = plotSVG(R, 720, 440);
+  $("plotLegend").innerHTML = legendHTML(R.hasAdj);
+  renderScenarios();
+  renderSheet();
+}
+function renderScenarios() {
+  const { hdp, vdp } = S.fmt;
+  $("scnBody").innerHTML = S.scenarios.map((s, i) => `<tr>
+    <td>${esc(s.name)}</td><td class="num">${fmt(s.st.hRmsA, hdp)}</td><td class="num">${fmt(s.st.hMaxA, hdp)}</td><td class="num">${fmt(s.st.vRmsA, vdp)}</td><td class="num">${fmt(s.st.vMaxA, vdp)}</td>
+    <td style="white-space:nowrap"><button type="button" data-use="${i}">Use</button> <button type="button" class="ghost" data-sdel="${i}" aria-label="Remove">✕</button></td></tr>`).join("") ||
+    `<tr><td colspan="6" class="empty">Save a few adjustments to compare them side by side.</td></tr>`;
+}
+function renderSheet() {
+  const m = S.meta, { hdp, vdp } = S.fmt;
+  const row = (r, after) => {
+    const x = after ? r.a : r.b;
+    const lbl = r.p.label || (S.points[r.p.c] || {}).d || "";
+    const zero = after && x.h < Math.pow(10, -hdp) / 2;
+    return `<tr><td class="mono">${esc(r.p.v)} → ${esc(r.p.c)}${lbl ? `<span class="role">${esc(lbl)}${r.p.use ? "" : " · check"}</span>` : (r.p.use ? "" : `<span class="role">check</span>`)}</td>
+      <td class="mono">${zero ? "—" : bearing(x.az, x.h)}</td><td class="num">${zero ? "—" : fmt(x.h, hdp)}</td><td class="num">${fmtSigned(x.v, vdp)}</td></tr>`;
+  };
+  const adjLines = [];
+  if (S.adj.hm !== "none") adjLines.push(esc(R.hDesc));
+  if (S.adj.vm !== "none") adjLines.push(`Vertical translation: ${esc(R.vDesc)}`);
+  const adjParams = `Translation N ${fmtSigned(R.m.n, hdp)}, E ${fmtSigned(R.m.e, hdp)}${moveBD(R.m, hdp) ? ` (${moveBD(R.m, hdp)})` : ""}` + (Math.abs(R.theta) > 1e-9 ? `; rotation ${rotWords(R.theta)} about ${esc(R.Qname)}` : "") + (Math.abs(R.sc - 1) > 1e-12 ? `; scale ×${R.sc.toFixed(8)} about ${esc(R.Qname)}` : "");
+  $("sheet").innerHTML = `
+    <div class="hdr">
+      <div class="co">${esc(m.company)}</div>
+      <div class="meta">${esc(m.range)}${m.points ? "\n" + esc(m.points) : ""}</div>
+    </div>
+    <div class="ttl"><div class="p">${esc(m.project || "Untitled job")}</div><div class="s">${esc(m.sub)}</div></div>
+    <table>
+      <thead><tr><th>Points</th><th>Bearing</th><th class="num">Horiz.</th><th class="num">Vert.</th></tr></thead>
+      <tbody>
+        ${R.rows.map(r => row(r, false)).join("") || `<tr><td colspan="4" class="empty">No pairs.</td></tr>`}
+        ${R.hasAdj && !R.err.length ? `
+        <tr class="adjrow"><td><b>Adjustment</b></td><td colspan="2">${adjLines.join("<br>")}${S.adj.hm !== "none" ? `<br><span class="role">${adjParams}</span>` : ""}</td><td class="num">${S.adj.vm !== "none" ? fmtSigned(R.dZ, vdp) : ""}</td></tr>
+        ${R.rows.map(r => row(r, true)).join("")}` : ""}
+      </tbody>
+    </table>
+    ${R.rows.length > 1 ? `<div class="plot">${plotSVG(R, 720, 250)}</div>` : ""}
+    <div class="notes">
+      ${m.decision ? `<div><b>Note</b><pre>${esc(m.decision)}</pre></div>` : ""}
+      ${R.hasAdj && !R.err.length ? `<div><b>Fit pairs</b> Horiz RMS ${fmt(R.stats.hRmsB, hdp)} → ${fmt(R.stats.hRmsA, hdp)} · Vert RMS ${fmt(R.stats.vRmsB, vdp)} → ${fmt(R.stats.vRmsA, vdp)}</div>` : ""}
+    </div>
+    <div class="stamp"><span>Bearing/distance inversed VRS → control. Vert = control − VRS.</span><span>${esc(m.date)}${m.by ? " · " + esc(m.by) : ""}${S.example ? " · EXAMPLE DATA" : ""}</span></div>`;
+}
+// Fill company, VRS point range and point notes from the points, until the user types in them
+const DEFAULT_COMPANY = "True South Surveyors";
+function vNum(id) { const m = /^V(\d+)$/i.exec(id); return m ? +m[1] : null; }
+function autoMeta() {
+  const m = S.meta, a = m.auto || (m.auto = {});
+  const vs = S.order.filter(id => vNum(id) != null).sort((x, y) => vNum(x) - vNum(y));
+  if (a.company !== false && !m.company) m.company = DEFAULT_COMPANY;
+  if (a.range !== false) {
+    const runs = [];
+    for (const id of vs) { const n = vNum(id), r = runs[runs.length - 1]; if (r && n === r.b + 1) r.b = n; else runs.push({ a: n, b: n }); }
+    m.range = runs.map(r => r.a === r.b ? `V${r.a}` : `V${r.a}–V${r.b}`).join(", ");
+  }
+  if (a.points !== false) {
+    m.points = vs.map(id => {
+      const d = (S.points[id].d || "").toUpperCase();
+      // "EX CHK HUB", "EXIST HUB", "EHUB", "FND" etc. are existing marks, not ones we set
+      if (/\bEX\b|\bEX[.\s-]|EXIST|\bEXI?\b|\bE(HUB|CHK|SIR)|\bFOUND\b|\bFND\b/.test(d)) return null;
+      if (/HUB/.test(d)) return `${id} Check Hub`;
+      if (/\bSIR\b/.test(d)) return `${id} SIR`;
+      if (/\bBP\d*\b|BASE POLE/.test(d)) return `${id} Base Pole`;
+      return null;
+    }).filter(Boolean).join("\n");
+  }
+}
+function renderAll() {
+  autoMeta();
+  ["Project:project", "Sub:sub", "Company:company", "Date:date", "By:by", "Range:range", "Points:points", "Decision:decision"].forEach(x => {
+    const [k, f] = x.split(":"); const el = $("m" + k); if (document.activeElement !== el) el.value = S.meta[f] || "";
+  });
+  $("exag").value = S.fmt.exag || "auto"; $("hdp").value = S.fmt.hdp; $("vdp").value = S.fmt.vdp; $("order").value = S.fmt.order;
+  renderPoints(); renderPairs(); renderAdjOptions(); renderResults();
+}
+function changed(full) { persist(); if (full) renderAll(); else renderResults(); }
+
+// ---------- events ----------
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2600); }
+function clearExample() { if (S.example) { const meta = { ...BLANK().meta }; S = BLANK(); S.meta = meta; } }
+
+$("ptFile").addEventListener("change", async ev => {
+  const files = [...ev.target.files]; ev.target.value = "";
+  if (!files.length) return;
+  clearExample();
+  const msgs = [];
+  for (const f of files) {
+    try {
+      if (/\.crd$/i.test(f.name)) {
+        const r = await parseCRD(await f.arrayBuffer());
+        r.pts.forEach(p => addPoint(S, p)); msgs.push(`${f.name}: ${r.note}`);
+      } else {
+        const r = parseText(await f.text(), S.fmt.order, nextP());
+        r.pts.forEach(p => addPoint(S, p));
+        msgs.push(`${f.name}: ${r.pts.length} points${r.bad.length ? `, skipped ${r.bad.length} unreadable line(s)` : ""}.`);
+      }
+      if (!S.meta.project) S.meta.project = f.name.replace(/\.[^.]+$/, "");
+    } catch (e) { msgs.push(`${f.name}: ${e.message}`); }
+  }
+  $("ptStatus").textContent = msgs.join(" "); $("ptStatus").dataset.msg = "1";
+  changed(true);
+});
+$("order").addEventListener("change", e => { S.fmt.order = e.target.value; persist(); });
+$("addPaste").addEventListener("click", () => {
+  const r = parseText($("paste").value, S.fmt.order, nextP());
+  if (!r.pts.length) { toast("No points found. Check the column order."); return; }
+  clearExample(); r.pts.forEach(p => addPoint(S, p)); $("paste").value = "";
+  $("ptStatus").textContent = `Added ${r.pts.length} pasted points.`; $("ptStatus").dataset.msg = "1";
+  changed(true);
+});
+$("addPair").addEventListener("click", () => { S.pairs.push({ v: "", c: "", label: "", use: true }); changed(true); const ins = document.querySelectorAll('#pairBody input[data-k=v]'); ins[ins.length - 1]?.focus(); });
+$("autoPair").addEventListener("click", () => { $("autoBox").hidden = !$("autoBox").hidden; if (!$("autoBox").hidden) $("autoText").focus(); });
+$("autoGo").addEventListener("click", () => {
+  const items = $("autoText").value.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+  const have = new Set(S.pairs.map(p => p.v));
+  let n = 0, missing = [];
+  const add = (v, c) => { if (have.has(v)) return; have.add(v); S.pairs.push({ v, c: c || "", label: "", use: true }); fillFromV(S.pairs.length - 1); n++; };
+  for (const it of items) {
+    // "V5-V8" or "V5-8" adds V5, V6, V7, V8 (only points that exist once points are loaded)
+    const r = it.match(/^([A-Za-z]*)(\d+)\s*-\s*([A-Za-z]*)(\d+)$/);
+    if (r && (!r[3] || r[3].toUpperCase() === r[1].toUpperCase())) {
+      const a = +r[2], b = +r[4], step = a <= b ? 1 : -1;
+      for (let k = a; step > 0 ? k <= b : k >= b; k += step) {
+        const id = r[1] + k;
+        if (S.order.length && !S.points[id]) missing.push(id); else add(id);
+      }
+      continue;
+    }
+    // "V1=47005" pairs as typed; a lone "V1" takes the suggested control point
+    const m = it.split(/\s*(?:=|->|→|>|\s)\s*/).filter(Boolean); if (!m.length) continue;
+    add(m[0], m[1]);
+  }
+  $("autoText").value = ""; $("autoBox").hidden = true; toast(`Added ${n} pair${n === 1 ? "" : "s"}.` + (missing.length ? ` Not in the point list: ${missing.join(", ")}.` : "")); changed(true);
+});
+$("pairBody").addEventListener("input", e => {
+  const el = e.target, i = +el.dataset.i, k = el.dataset.k; if (isNaN(i) || !k) return;
+  S.pairs[i][k] = k === "use" ? el.checked : el.value.trim() === "" ? "" : (k === "label" ? el.value : el.value.trim());
+  if (k === "c") { S.pairs[i].cAuto = false; el.style.fontStyle = ""; el.title = ""; }
+  if (k === "label") S.pairs[i].labelAuto = false;
+  if (k === "v" || k === "c") el.style.borderColor = S.points[el.value.trim()] || !el.value ? "" : "var(--bad)";
+  if (k === "v") {
+    fillFromV(i);
+    const row = el.closest("tr"), c = row.querySelector("[data-k=c]"), l = row.querySelector("[data-k=label]"), p = S.pairs[i];
+    if (p.cAuto) { c.value = p.c; c.style.fontStyle = p.c ? "italic" : ""; c.style.borderColor = ""; c.title = p.c ? `Suggested: nearest control point, ${fmt(p.cDist ?? 0, 2)} ft away` : ""; }
+    if (p.labelAuto) l.value = p.label;
+  }
+  persist(); renderAdjOptions(); renderResults();
+});
+$("pairBody").addEventListener("click", e => { const d = e.target.closest("[data-del]"); if (!d) return; S.pairs.splice(+d.dataset.del, 1); fixAdjIdx(+d.dataset.del); changed(true); });
+function fixAdjIdx(removed) {
+  const hit = [];
+  for (const k of ["a", "b", "pivot", "vHold"]) { if (+S.adj[k] === removed) { S.adj[k] = -1; hit.push(k); } else if (S.adj[k] > removed) S.adj[k]--; }
+  if (!hit.length) return;
+  const ps = activePairs(), zs = ps.filter(p => p.V.z != null && p.C.z != null);
+  if (S.adj.a === -1) S.adj.a = (S.adj.hm === "shiftrot" ? ps.find(p => p.i !== +S.adj.b) : null)?.i ?? ps[0]?.i ?? 0;
+  if (S.adj.b === -1) S.adj.b = ps.find(p => p.i !== +S.adj.a)?.i ?? 0;
+  if (S.adj.pivot === -1) S.adj.pivot = ps[0]?.i ?? 0;
+  if (S.adj.vHold === -1) S.adj.vHold = zs[0]?.i ?? 0;
+  const used = (S.adj.hm === "shift" && hit.includes("a")) || (S.adj.hm === "shiftrot" && (hit.includes("a") || hit.includes("b"))) || (S.adj.hm === "fit" && hit.includes("pivot")) || (S.adj.vm === "hold" && hit.includes("vHold"));
+  if (used) setTimeout(() => toast("The adjustment was using that pair. It now uses another one, so check the Adjustment choices."), 0);
+}
+document.querySelectorAll("input[name=hm]").forEach(r => r.addEventListener("change", () => {
+  // Switching to Manual starts from the points the current option used
+  if (r.value === "manual" && R && R.seed && S.adj.hm !== "manual") Object.assign(S.adj, R.seed);
+  S.adj.hm = r.value;
+  const ps = activePairs();
+  if (!ps.find(p => p.i === +S.adj.a)) S.adj.a = ps[0]?.i ?? 0;
+  if (!ps.find(p => p.i === +S.adj.b) || +S.adj.b === +S.adj.a) S.adj.b = ps.find(p => p.i !== +S.adj.a)?.i ?? 0;
+  if (!ps.find(p => p.i === +S.adj.pivot)) S.adj.pivot = ps[0]?.i ?? 0;
+  changed(true);
+}));
+document.querySelectorAll("input[name=vm]").forEach(r => r.addEventListener("change", () => {
+  S.adj.vm = r.value;
+  const ps = activePairs().filter(p => p.V.z != null && p.C.z != null); if (!ps.find(p => p.i === +S.adj.vHold)) S.adj.vHold = ps[0]?.i ?? 0;
+  changed(true);
+}));
+const adjMap = { aA: "a", aB: "b", aPivot: "pivot", aFitScale: "fitScale", aBase: "mBase", aTo: "mTo", aPv: "mPivot", aRef: "mRef", aNew: "mNew", aMScale: "mScale", aVHold: "vHold", aVMan: "vManual" };
+for (const box of ["hOpts", "vOpts"]) {
+  $(box).addEventListener("input", e => {
+    const k = adjMap[e.target.id]; if (!k) return;
+    S.adj[k] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    persist(); if (e.target.type === "checkbox") renderAdjOptions(); renderResults();
+  });
+}
+$("exag").addEventListener("change", e => { S.fmt.exag = e.target.value; changed(false); });
+$("hdp").addEventListener("change", e => { S.fmt.hdp = +e.target.value; changed(false); });
+$("vdp").addEventListener("change", e => { S.fmt.vdp = +e.target.value; changed(false); });
+["Project:project", "Sub:sub", "Company:company", "Date:date", "By:by", "Range:range", "Points:points", "Decision:decision"].forEach(x => {
+  const [k, f] = x.split(":"); $("m" + k).addEventListener("input", e => {
+    S.meta[f] = e.target.value;
+    // Typing takes over from the auto fill; leaving the box empty hands it back
+    if (["company", "range", "points"].includes(f)) (S.meta.auto || (S.meta.auto = {}))[f] = !e.target.value.trim();
+    persist(); renderSheet();
+  });
+  $("m" + k).addEventListener("change", e => {
+    if (!["company", "range", "points"].includes(f) || e.target.value.trim()) return;
+    autoMeta(); e.target.value = S.meta[f] || ""; persist(); renderSheet();
+  });
+});
+$("saveScn").addEventListener("click", () => {
+  if (!R || R.err.length) { toast("Fix the adjustment settings first."); return; }
+  const name = [S.adj.hm !== "none" ? R.hDesc : "No horizontal", S.adj.vm !== "none" ? `vert ${R.vDesc.toLowerCase()} (${fmtSigned(R.dZ, S.fmt.vdp)})` : "no vertical"].join(" · ");
+  S.scenarios.push({ name, adj: { ...S.adj }, pairs: S.pairs.map(p => ({ ...p })), st: R.stats });
+  changed(false); toast("Saved for comparison.");
+});
+$("scnBody").addEventListener("click", e => {
+  const u = e.target.closest("[data-use]"), d = e.target.closest("[data-sdel]");
+  if (u) { const s = S.scenarios[+u.dataset.use]; S.adj = { ...s.adj }; S.pairs = s.pairs.map(p => ({ ...p })); changed(true); toast("Adjustment restored."); }
+  if (d) { S.scenarios.splice(+d.dataset.sdel, 1); changed(false); }
+});
+
+function download(name, text, type) {
+  const blob = new Blob([text], { type }); const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  if (inFrame) $("printHint").hidden = false;
+}
+function csvText() {
+  if (!R) return null;
+  const { hdp, vdp } = S.fmt, q = s => `"${String(s).replace(/"/g, '""')}"`;
+  const lines = [["VRS", "Control", "Label", "Fit", "Bearing before", "Horiz before", "Vert before", "Bearing after", "Horiz after", "Vert after"].join(",")];
+  // With an unfinished adjustment, keep the before inverses and leave the after columns blank
+  const after = R.hasAdj && !R.err.length;
+  for (const r of R.rows) lines.push([r.p.v, r.p.c, r.p.label, r.p.use ? "Y" : "N", bearing(r.b.az, r.b.h), fmt(r.b.h, hdp), fmt(r.b.v, vdp), after ? bearing(r.a.az, r.a.h) : "", after ? fmt(r.a.h, hdp) : "", after ? fmt(r.a.v, vdp) : ""].map(q).join(","));
+  if (R.err.length) { lines.push("", q("Adjustment") + "," + q("Not set: " + R.err.join(" "))); return lines.join("\n"); }
+  lines.push("", q("Adjustment") + "," + q(`${R.hDesc}; vertical translation ${R.vDesc}`), q("Translation N") + "," + fmt(R.m.n, hdp), q("Translation E") + "," + fmt(R.m.e, hdp), q("Translation bearing & distance") + "," + q(moveBD(R.m, hdp)), q("Rotation") + "," + q(rotWords(R.theta) + " about " + R.Qname), q("Scale") + "," + R.sc.toFixed(8), q("Vertical translation") + "," + fmt(R.dZ, vdp));
+  return lines.join("\n");
+}
+$("copyCsv").addEventListener("click", () => {
+  const t = csvText(); if (t == null) { toast("Fix the adjustment settings first."); return; }
+  navigator.clipboard.writeText(t).then(() => toast("Copied. Paste into Excel or an email.")).catch(() => { $("paste").value = t; toast("Copy was blocked. The CSV is in the paste box; select it there."); });
+});
+$("dlCsv").addEventListener("click", () => { const t = csvText(); if (t == null) { toast("Fix the adjustment settings first."); return; } download(`${S.meta.project || "control-check"}.csv`, t, "text/csv"); });
+$("dlPts").addEventListener("click", () => {
+  if (!R || R.err.length) { toast("Fix the adjustment settings first."); return; }
+  // Every VRS shot: the paired ones plus any other V# points (SIR, check hub, ...)
+  const ids = [...new Set([...S.pairs.map(p => p.v), ...S.order.filter(id => /^V\d+$/i.test(id))].filter(id => S.points[id]))];
+  const txt = ids.map(id => { const p = R.T.apply(S.points[id]); return [id, p.n.toFixed(4), p.e.toFixed(4), p.z == null ? "" : p.z.toFixed(4), p.d.replace(/,/g, " ")].join(","); }).join("\n");
+  download(`${S.meta.project || "control-check"}-adjusted-VRS.txt`, txt, "text/plain");
+});
+$("saveJob").addEventListener("click", () => download(`${S.meta.project || "control-check"}.vrscheck.json`, JSON.stringify(S, null, 1), "application/json"));
+$("jobFile").addEventListener("change", async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try { const o = JSON.parse(await f.text()); if (!o.points) throw 0; S = Object.assign(BLANK(), o); delete $("ptStatus").dataset.msg; changed(true); toast("Job opened."); }
+  catch (_) { toast("That file isn't a saved job."); }
+});
+// New job asks in a separate bar; its Clear button is far from New job and ignores clicks for a moment
+let resetShownAt = 0;
+$("resetJob").addEventListener("click", () => { $("resetBar").hidden = false; resetShownAt = Date.now(); $("resetCancel").focus(); });
+$("resetCancel").addEventListener("click", () => { $("resetBar").hidden = true; });
+$("resetYes").addEventListener("click", () => {
+  if (Date.now() - resetShownAt < 700) return;
+  $("resetBar").hidden = true; S = BLANK(); delete $("ptStatus").dataset.msg; changed(true); toast("New job started.");
+});
+const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+$("printBtn").addEventListener("click", () => { if (inFrame) $("printHint").hidden = false; window.print(); });
+
+S = restore() || exampleJob();
+renderAll();
+</script>
+</body></html>
