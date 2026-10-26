@@ -202,7 +202,7 @@ This repo hosts **VRS Control Check**, a single-page browser tool the crew uses 
 
 #### Client and job data rules
 
-- **This repo and its website are public.** Dakota chose this (Oct 2026) as an exception to the team's Private rule, because GitHub Pages on the free plan needs a public repo. Anyone can read every file and every commit. Never commit real job data: no `.crd` files, control `.txt`/`.csv` files, field sheets, client or project names, or real coordinates. The built-in example job (`exampleJob()`) uses real relative geometry moved to made-up base coordinates. Keep it that way.
+- **This repo and its website are public.** Dakota chose this (Oct 2026) as an exception to the team's Private rule, because GitHub Pages on the free plan needs a public repo. Anyone can read every file and every commit. Never commit real job data: no `.crd` files, control `.txt`/`.csv` files, field sheets, client or project names, or real coordinates. The sample job `samples/example-job.vrscheck.json` uses real relative geometry moved to made-up base coordinates. Keep it that way. (The page used to load it on its own as a built-in example; Dakota had that removed in Oct 2026 so the page opens blank.) The file carries `"sample": true`, which stamps EXAMPLE DATA on the sheet and makes loading or pasting real points replace it instead of mixing with it.
 - The same goes for GitHub text: branch names, PR titles, PR descriptions and review comments must not name a client, job, job number, file name or sheet title. This repo has no automated client-data check, so before each push or post (steps 3, 6 and 8), read the diff and that text yourself and keep it generic (for example "fix rotation on record sheet", not a job name). Say in the approval comment that you checked.
 - `index.html` is internet-facing, so changes to it get the **Thorough** review. Changes to README wording only can be Light.
 
@@ -245,5 +245,5 @@ The UI help text for each mode lives in `MODE_HELP`.
 #### How to run and test it
 
 - Open `index.html` directly in a browser (double-click it). There is nothing to install or build.
-- After a change: check the browser console for errors, click the example job, and confirm Results, the plot, Compare adjustments and the record sheet all render. Check Print Preview. Check a phone-width window too, since crews may open it in the field.
+- After a change: check the browser console for errors, check the page opens blank, load `samples/example-job.vrscheck.json` with Open job, and confirm Results, the plot, Compare adjustments and the record sheet all render. Check Print Preview. Check a phone-width window too, since crews may open it in the field.
 - Dakota is a surveyor, not a developer. Explain changes in plain surveying terms.
