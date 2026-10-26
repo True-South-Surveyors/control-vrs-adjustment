@@ -567,6 +567,16 @@ function makeT(m, theta, sc, Q, dZ) {
 function activePairs() {
   return S.pairs.map((p, i) => ({ ...p, i, V: S.points[p.v], C: S.points[p.c] })).filter(p => p.V && p.C);
 }
+// "Unused" tag: not ticked Incl. and not the pair (or Manual point) the chosen adjustment holds or rotates to
+function unusedPair(p) {
+  if (p.use) return false;
+  const A = S.adj, id = x => (x || "").trim();
+  if ((A.hm === "shift" || A.hm === "shiftrot") && p.i === +A.a) return false;
+  if (A.hm === "shiftrot" && p.i === +A.b) return false;
+  if (A.hm === "manual" && [A.mBase, A.mTo, A.mPivot, A.mRef, A.mNew].some(x => id(x) && (id(x) === p.v || id(x) === p.c))) return false;
+  if (A.vm === "hold" && p.i === +A.vHold) return false;
+  return true;
+}
 
 function solve() {
   const pairs = activePairs();
@@ -753,7 +763,7 @@ function plotSVG(R, W, H) {
     for (let tries = 0; tries < 6 && boxes.some(hits); tries++) ly += (uy > 0 ? 1 : -1) * 28;
     boxes.push({ x0, w: wpx, y: ly });
     g += `<text class="pl-txt" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}">${esc(it.r.p.c)}</text>`;
-    g += `<text class="pl-sub" x="${lx.toFixed(1)}" y="${(ly + 12).toFixed(1)}" text-anchor="${anchor}">${esc(it.r.p.v)}${it.r.p.use ? "" : " (check)"}</text>`;
+    g += `<text class="pl-sub" x="${lx.toFixed(1)}" y="${(ly + 12).toFixed(1)}" text-anchor="${anchor}">${esc(it.r.p.v)}${unusedPair(it.r.p) ? " (unused)" : ""}</text>`;
   }
   // error scale bar and north arrow
   const barFt = niceNum(maxRes / 2), barPx = barFt * k * sc;
@@ -882,7 +892,7 @@ function renderResults() {
     ["Vert RMS", st.vRmsB, st.vRmsA, vdp], ["Vert max", st.vMaxB, st.vMaxA, vdp],
   ].map(([l, b, a, dp]) => `<div class="stat"><small>${l}</small><b>${fmt(R.hasAdj ? a : b, dp)}</b>${R.hasAdj ? chg(b, a, dp) : `<span class="chg" style="color:var(--muted)">included pairs: ${st.n}</span>`}</div>`).join("");
   $("resBody").innerHTML = R.rows.map(({ p, b, a }) => `<tr>
-      <td class="mono">${esc(p.v)} → ${esc(p.c)} ${p.use ? "" : `<span class="pill check">check</span>`}</td>
+      <td class="mono">${esc(p.v)} → ${esc(p.c)} ${unusedPair(p) ? `<span class="pill check" title="Not ticked Incl. and not held or rotated to: reported, but not used to compute the adjustment">unused</span>` : ""}</td>
       <td class="mono cb first">${bearing(b.az, b.h)}</td><td class="num cb">${fmt(b.h, hdp)}</td><td class="num cb">${fmtSigned(b.v, vdp)}</td>
       <td class="mono ca first">${R.hasAdj ? bearing(a.az, a.h) : ""}</td><td class="num ca">${R.hasAdj ? fmt(a.h, hdp) : ""}</td><td class="num ca">${R.hasAdj ? fmtSigned(a.v, vdp) : ""}</td>
     </tr>`).join("") || `<tr><td colspan="7" class="empty">Add pairs to see distances.</td></tr>`;
@@ -904,7 +914,7 @@ function renderSheet() {
     const x = after ? r.a : r.b;
     const lbl = r.p.label || (S.points[r.p.c] || {}).d || "";
     const zero = after && x.h < Math.pow(10, -hdp) / 2;
-    return `<tr><td class="mono">${esc(r.p.v)} → ${esc(r.p.c)}${lbl ? `<span class="role">${esc(lbl)}${r.p.use ? "" : " · check"}</span>` : (r.p.use ? "" : `<span class="role">check</span>`)}</td>
+    return `<tr><td class="mono">${esc(r.p.v)} → ${esc(r.p.c)}${lbl ? `<span class="role">${esc(lbl)}${unusedPair(r.p) ? " · unused" : ""}</span>` : (unusedPair(r.p) ? `<span class="role">unused</span>` : "")}</td>
       <td class="mono">${zero ? "—" : bearing(x.az, x.h)}</td><td class="num">${zero ? "—" : fmt(x.h, hdp)}</td><td class="num">${fmtSigned(x.v, vdp)}</td></tr>`;
   };
   const adjLines = [];
