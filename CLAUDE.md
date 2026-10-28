@@ -37,8 +37,15 @@ anything was not refused, stop and tell us.
    and `gh pr create --title "WIP: <what this change is>" --body "Planned files: <files or area this
    will touch>"`. This early PR is how the other person's
    overlap check sees the work while it is being built. (Draft PRs aren't available for private
-   repos on our free plan, hence `WIP:`.)
+   repos on our free plan, hence `WIP:`.) If the work mixes something that needs a Thorough review
+   (step 8) with other changes, make them separate branches and PRs, so the rest gets the lighter
+   review it needs, unless these rules put them together (a rules update, a new repo's first branch).
 4. **Build** the change. Run it or test it the way this README says, and show us it works.
+   Safety checks are changed only in the template (see "Team rules come from the template"
+   below). There, a change to `.claude/hooks/guard.ps1`, `.githooks/pre-push` or the guard's command in
+   `.claude/settings.json` must pass
+   `powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/guard-tests.ps1`, with a new
+   case in that file for each command whose answer it changes.
 5. **Commit** with a plain-English message, then `git push`. Push after every commit, not just at
    the end, so the work stays visible.
 6. **Finish the PR:** write the description to a file in the temp folder (`$env:TEMP`, never inside
@@ -64,7 +71,9 @@ anything was not refused, stop and tell us.
      no repeated full rounds.
    - **Thorough** (CLAUDE.md or any file holding the repo's rules; `.claude/`, `.githooks/` or other
      safety checks; anything touching client or job data, passwords, logins, user data, file uploads
-     or anything internet-facing; code or settings that decide which files are saved or changed): `/code-review high`, plus `/security-review` where relevant. Fix every
+     or anything internet-facing; code or settings that decide which files are saved or changed): `/code-review high`, plus `/security-review` where relevant. When both are needed, start them
+     in the same message rather than one after the other (`/code-review high`, plus a subagent
+     that runs `/security-review`); together they are one round. Fix every
      real problem and review again until no real problems are left, for at most three rounds in
      all (the first review plus two re-reviews). If the third round still finds a new real problem,
      stop and ask us instead of continuing.
@@ -80,7 +89,10 @@ anything was not refused, stop and tell us.
      problem even if it is unlikely.
    - **Re-reviews** after fixing review findings check only the fixes and what they could break,
      not the whole change again. New work, or a merge from `main`, after a review is not a
-     re-review: it gets a fresh review of everything new.
+     re-review: it gets a fresh review of everything new. For the guard or pre-push, add a test
+     case for each real problem found (the merge checks that ask GitHub can't be tested offline,
+     so say so in the approval comment instead), and have the tests pass after the fixes, before
+     re-reviewing.
    - Post the approval as a PR comment (`gh pr comment --body-file <file>`, written to `$env:TEMP` with the Write tool as in step 6). The
      first line must be exactly
      `Claude review: APPROVED for <full commit sha of the PR head>`, followed by a short
@@ -124,8 +136,14 @@ never only in one repo. When asked to "push the new rules to all our repos", for
   cloning, run `git -C "<clone>" config core.hooksPath .githooks`: that only happens automatically
   when a Claude Code session starts in a folder, so without it no hooks run in the clone.
 - Follow the workflow above: one PR per repo, titled "Update team rules from template". These PRs
-  touch safety checks, so the review is **Thorough**.
-- **Copied as-is:** `.claude/hooks/guard.ps1`, `.githooks/pre-push`.
+  touch safety checks, so the review is **Thorough**. Before reviewing, run the tests in the clone
+  (`powershell -NoProfile -ExecutionPolicy Bypass -File "<clone>\.claude\hooks\guard-tests.ps1"`);
+  they must pass, which also checks the hand-merged `.claude/settings.json`.
+- **Someone may be working in the repo.** Run the overlap check (step 2) in each clone. If someone's
+  open PR touches files the update changes, tell us who and what, and leave that repo until we
+  agree. Their folder and branch are never touched; once the update is merged, their PR must catch
+  up with `main` (step 7) before it can merge, keeping both sides of any conflict.
+- **Copied as-is:** `.claude/hooks/guard.ps1`, `.claude/hooks/guard-tests.ps1`, `.githooks/pre-push`.
 - **Merged, keeping the repo's own additions:**
   - `.claude/settings.json`: the template's entries, plus any the repo added.
   - `.gitattributes`: the template's lines, plus any the repo added.
