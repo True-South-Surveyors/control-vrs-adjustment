@@ -39,11 +39,18 @@ anything was not refused, stop and tell us.
    overlap check sees the work while it is being built. (Draft PRs aren't available for private
    repos on our free plan, hence `WIP:`.) If the work mixes something that needs a Thorough review
    (step 8) with other changes, make them separate branches and PRs, so the rest gets the lighter
-   review it needs, unless these rules put them together (a rules update, a new repo's first branch).
+   review it needs, unless these rules or the repo's About section put them together (a rules
+   update, a new repo's first branch, or a repo's one-pull-request-per-sitting rule).
 4. **Build** the change. Run it or test it the way this README says, and show us it works.
-   Safety checks are changed only in the template (see "Team rules come from the template"
-   below). There, a change to `.claude/hooks/guard.ps1`, `.githooks/pre-push` or the guard's command in
-   `.claude/settings.json` must pass
+   The team's shared safety checks (`.claude/hooks/guard.ps1`, `.claude/hooks/guard-tests.ps1`,
+   `.githooks/pre-push` and the template's entries in `.claude/settings.json`) are changed only in
+   the template (see "Team rules come from the template" below), even when the problem is found in
+   another repo. A repo's own checks, such as a client-name check in `tools/hooks/`, are changed in
+   that repo, only when a person asks or its About section says to (for example adding an ordinary
+   word to a list of allowed words), never so that a real name gets through, and with the Thorough
+   review. Before testing such a change, say how you plan to test it (with made-up names, never
+   real ones) and wait for our OK. In the
+   template, a change to the shared checks must pass
    `powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/guard-tests.ps1`, with a new
    case in that file for each command whose answer it changes.
 5. **Commit** with a plain-English message, then `git push`. Push after every commit, not just at
@@ -115,7 +122,13 @@ Never put passwords, API keys, tokens, or client data in code or commits, and ne
 details (their names, addresses, the names of their files, or sheet titles) in branch names, PR
 titles, PR descriptions or review comments: those reach GitHub without passing any commit check, and
 GitHub keeps their edit history. In a repo with a client-data check, run it on each of these before
-it is pushed or posted (steps 3, 6 and 8), not only at review. Use a `.env` file
+it is pushed or posted (steps 3, 6 and 8), not only at review, the way the repo's About section
+describes, with the text in a file in `$env:TEMP` (never in the repo) written with the Write tool.
+If the check skips lines starting with `#` (as `job-info-guard.sh` does), check a copy with leading
+`#` removed, using the Bash tool with forward-slash paths (`sed 's/^#*//' "<file>" > "<file>.chk"`;
+PowerShell has no `sed`), so Markdown headings are checked too. Capture everything it prints
+(`out=$(<check> 2>&1); echo "exit $? [$out]"`) so no warning is shortened away; it counts as
+checked only if it exits 0 and prints nothing. Use a `.env` file
 (git-ignored) and keep a `.env.example` with the variable names and fake values. If a secret is ever
 committed, tell us immediately so we can change it. Removing it from the code is not enough.
 
