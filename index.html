@@ -1161,15 +1161,18 @@ $("resetYes").addEventListener("click", () => {
 });
 const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
 // Light/dark switch: the button names the mode a click switches to; the choice is remembered on this browser (follows the computer's setting until clicked)
-const darkNow = () => (document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
+const THEME_KEY = "vrs-control-check-theme", osDark = matchMedia("(prefers-color-scheme: dark)");
+const darkNow = () => (document.documentElement.dataset.theme || (osDark.matches ? "dark" : "light")) === "dark";
 const themeLabel = () => { $("themeBtn").textContent = darkNow() ? "Light mode" : "Dark mode"; };
 $("themeBtn").addEventListener("click", () => {
   const t = darkNow() ? "light" : "dark";
   document.documentElement.dataset.theme = t;
-  try { localStorage.setItem("vrs-control-check-theme", t); } catch (e) {}
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
   themeLabel();
 });
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", themeLabel);
+// Older iPhones/iPads (iOS 13 and earlier) only have addListener; other open tabs of the tool pick up a change made here
+if (osDark.addEventListener) osDark.addEventListener("change", themeLabel); else if (osDark.addListener) osDark.addListener(themeLabel);
+addEventListener("storage", e => { if (e.key === THEME_KEY && (e.newValue === "light" || e.newValue === "dark")) { document.documentElement.dataset.theme = e.newValue; themeLabel(); } });
 themeLabel();
 $("printBtn").addEventListener("click", () => { if (inFrame) $("printHint").hidden = false; window.print(); });
 
