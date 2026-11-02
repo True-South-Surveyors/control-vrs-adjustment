@@ -246,7 +246,7 @@ This repo hosts **VRS Control Check**, a single-page browser tool the crew uses 
 
 #### What the tool does
 
-Page sections: **1 Points**, **2 Pairs**, **3 Adjustment**, **Results**, **Record details**, **Compare adjustments**, and a printable record sheet (print → Save as PDF).
+Page sections: **1 Points**, **2 Pairs**, **3 Adjustment**, **Results**, **Record details**, **Compare Saved Adjustments** (filled with the **Save this adjustment** button at the bottom of 3 Adjustment), and a printable record sheet (print → Save as PDF).
 
 **Inputs**
 - PNEZD text/CSV (point, northing, easting, elevation, description). Other column orders can be selected.
@@ -264,7 +264,7 @@ Page sections: **1 Points**, **2 Pairs**, **3 Adjustment**, **Results**, **Recor
 
 The UI help text for each mode lives in `MODE_HELP`.
 
-**Output:** residuals per pair before and after, a plot, a scenario comparison table, CSV download, and the record sheet. The sheet holds project, sub, date, by, point range, notes on the check hub and base pole, and the decision or reason the adjustment was chosen.
+**Output:** residuals per pair before and after, a plot, the Compare Saved Adjustments table, CSV download, and the record sheet. The sheet holds project, sub, date, by, point range, notes on the check hub and base pole, and the decision or reason the adjustment was chosen.
 
 #### Field conventions worth knowing
 
@@ -276,5 +276,5 @@ The UI help text for each mode lives in `MODE_HELP`.
 #### How to run and test it
 
 - Open `index.html` directly in a browser (double-click it). There is nothing to install or build.
-- After a change: check the browser console for errors, check the page opens blank, load `samples/example-job.vrscheck.json` with Open job, and confirm Results, the plot, Compare adjustments and the record sheet all render. Check Print Preview. Check a phone-width window too, since crews may open it in the field.
+- After a change: check the browser console for errors, check the page opens blank, load `samples/example-job.vrscheck.json` with Open job, and confirm Results, the plot, Compare Saved Adjustments and the record sheet all render. Check Print Preview. Check a phone-width window too, since crews may open it in the field.
 - Dakota is a surveyor, not a developer. Explain changes in plain surveying terms.
