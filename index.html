@@ -5,34 +5,34 @@
 <style>
 /* Layout: a working column of three steps (points, pairs, adjustment) beside a live results panel; the field record sheet sits below and is the only thing that prints. */
 :root {
-  --bg: #eef1ef;
+  --bg: #eef0f3;
   --panel: #ffffff;
-  --ink: #17201c;
-  --muted: #5b6862;
-  --line: #cfd6d2;
-  --grid: #dfe7e3;
+  --ink: #191d23;
+  --muted: #5c636d;
+  --line: #d0d5dc;
+  --grid: #e0e5ea;
   --accent: #1d5d8c;
   --accent-ink: #ffffff;
   --accent-soft: #e2edf5;
   --good: #23784a;
   --warn: #9a6408;
   --bad: #b23a2c;
-  --p-ctrl: #17201c; --p-before: #8a6a2a; --p-after: #1d5d8c; --p-text: #17201c; --p-muted: #5b6862; --p-bg: #ffffff;
+  --p-ctrl: #191d23; --p-before: #8a6a2a; --p-after: #1d5d8c; --p-text: #191d23; --p-muted: #5c636d; --p-bg: #ffffff;
   --font-body: "IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-head: "IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;
   --font-num: "IBM Plex Mono", Consolas, "Courier New", monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121816; --panel: #1a2220; --ink: #e4ebe7; --muted: #9aa9a2; --line: #33403b; --grid: #24302c;
+    --bg: #13161a; --panel: #1b1f25; --ink: #e5e8ed; --muted: #9ca3ad; --line: #353b44; --grid: #252a31;
     --accent: #6fb0e0; --accent-ink: #0d1a24; --accent-soft: #1d2f3c;
-    --good: #5fc48c; --warn: #e0a84a; --bad: #ef7a6a; --p-ctrl: #e4ebe7; --p-before: #d9b26a; --p-after: #6fb0e0; --p-text: #e4ebe7; --p-muted: #9aa9a2; --p-bg: #1a2220; color-scheme: dark;
+    --good: #5fc48c; --warn: #e0a84a; --bad: #ef7a6a; --p-ctrl: #e5e8ed; --p-before: #d9b26a; --p-after: #6fb0e0; --p-text: #e5e8ed; --p-muted: #9ca3ad; --p-bg: #1b1f25; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121816; --panel: #1a2220; --ink: #e4ebe7; --muted: #9aa9a2; --line: #33403b; --grid: #24302c;
+  --bg: #13161a; --panel: #1b1f25; --ink: #e5e8ed; --muted: #9ca3ad; --line: #353b44; --grid: #252a31;
   --accent: #6fb0e0; --accent-ink: #0d1a24; --accent-soft: #1d2f3c;
-  --good: #5fc48c; --warn: #e0a84a; --bad: #ef7a6a; --p-ctrl: #e4ebe7; --p-before: #d9b26a; --p-after: #6fb0e0; --p-text: #e4ebe7; --p-muted: #9aa9a2; --p-bg: #1a2220; color-scheme: dark;
+  --good: #5fc48c; --warn: #e0a84a; --bad: #ef7a6a; --p-ctrl: #e5e8ed; --p-before: #d9b26a; --p-after: #6fb0e0; --p-text: #e5e8ed; --p-muted: #9ca3ad; --p-bg: #1b1f25; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
