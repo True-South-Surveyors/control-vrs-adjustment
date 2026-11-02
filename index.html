@@ -908,7 +908,7 @@ function renderScenarios() {
   $("scnBody").innerHTML = S.scenarios.map((s, i) => `<tr>
     <td>${esc(s.name)}</td><td class="num">${fmt(s.st.hRmsA, hdp)}</td><td class="num">${fmt(s.st.hMaxA, hdp)}</td><td class="num">${fmt(s.st.vRmsA, vdp)}</td><td class="num">${fmt(s.st.vMaxA, vdp)}</td>
     <td style="white-space:nowrap"><button type="button" data-use="${i}">Use</button> <button type="button" class="ghost" data-sdel="${i}" aria-label="Remove">✕</button></td></tr>`).join("") ||
-    `<tr><td colspan="6" class="empty">Save a few adjustments to compare them side by side.</td></tr>`;
+    `<tr><td colspan="6" class="empty">Use Save this adjustment (in 3 Adjustment) to compare adjustments side by side.</td></tr>`;
 }
 function renderSheet() {
   const m = S.meta, { hdp, vdp } = S.fmt;
@@ -1106,7 +1106,7 @@ $("saveScn").addEventListener("click", () => {
   if (!R || R.err.length) { toast("Fix the adjustment settings first."); return; }
   const name = [S.adj.hm !== "none" ? R.hDesc : "No horizontal", S.adj.vm !== "none" ? `vert ${R.vDesc.toLowerCase()} (${fmtSigned(R.dZ, S.fmt.vdp)})` : "no vertical"].join(" · ");
   S.scenarios.push({ name, adj: { ...S.adj }, pairs: S.pairs.map(p => ({ ...p })), st: R.stats });
-  changed(false); toast("Saved for comparison.");
+  changed(false); toast("Saved. See Compare Saved Adjustments below.");
 });
 $("scnBody").addEventListener("click", e => {
   const u = e.target.closest("[data-use]"), d = e.target.closest("[data-sdel]");

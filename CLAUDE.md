@@ -264,7 +264,7 @@ Page sections: **1 Points**, **2 Pairs**, **3 Adjustment**, **Results**, **Recor
 
 The UI help text for each mode lives in `MODE_HELP`.
 
-**Output:** residuals per pair before and after, a plot, a scenario comparison table, CSV download, and the record sheet. The sheet holds project, sub, date, by, point range, notes on the check hub and base pole, and the decision or reason the adjustment was chosen.
+**Output:** residuals per pair before and after, a plot, the Compare Saved Adjustments table, CSV download, and the record sheet. The sheet holds project, sub, date, by, point range, notes on the check hub and base pole, and the decision or reason the adjustment was chosen.
 
 #### Field conventions worth knowing
 
