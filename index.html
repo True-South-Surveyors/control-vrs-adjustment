@@ -1,5 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>VRS Control Check</title>
+<script>/* Light/dark choice from the header button, applied before the page draws. Only the choice is kept on this browser, never job data. */ try { const t = localStorage.getItem("vrs-control-check-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
 <style>
@@ -189,6 +190,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
       <span class="file"><button type="button">Open job</button><input id="jobFile" type="file" accept=".json,application/json" aria-label="Open a saved job file"></span>
       <button type="button" id="saveJob">Save job</button>
       <button type="button" id="resetJob">New job</button>
+      <button type="button" id="themeBtn">Light mode</button>
     </div>
   </header>
   <div class="panel confirm noprint" id="resetBar" hidden role="alertdialog" aria-labelledby="resetMsg">
@@ -1158,6 +1160,20 @@ $("resetYes").addEventListener("click", () => {
   $("resetBar").hidden = true; S = BLANK(); delete $("ptStatus").dataset.msg; changed(true); toast("New job started.");
 });
 const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+// Light/dark switch: the button names the mode a click switches to; the choice is remembered on this browser (follows the computer's setting until clicked)
+const THEME_KEY = "vrs-control-check-theme", osDark = matchMedia("(prefers-color-scheme: dark)");
+const darkNow = () => (document.documentElement.dataset.theme || (osDark.matches ? "dark" : "light")) === "dark";
+const themeLabel = () => { $("themeBtn").textContent = darkNow() ? "Light mode" : "Dark mode"; };
+$("themeBtn").addEventListener("click", () => {
+  const t = darkNow() ? "light" : "dark";
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+  themeLabel();
+});
+// Older iPhones/iPads (iOS 13 and earlier) only have addListener; other open tabs of the tool pick up a change made here
+if (osDark.addEventListener) osDark.addEventListener("change", themeLabel); else if (osDark.addListener) osDark.addListener(themeLabel);
+addEventListener("storage", e => { if (e.key === THEME_KEY && (e.newValue === "light" || e.newValue === "dark")) { document.documentElement.dataset.theme = e.newValue; themeLabel(); } });
+themeLabel();
 $("printBtn").addEventListener("click", () => { if (inFrame) $("printHint").hidden = false; window.print(); });
 
 S = restore() || BLANK();
