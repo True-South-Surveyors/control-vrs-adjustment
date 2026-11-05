@@ -246,7 +246,9 @@ This repo hosts **VRS Control Check**, a single-page browser tool the crew uses 
 
 #### What the tool does
 
-Page sections: **1 Points**, **2 Pairs**, **3 Adjustment**, **Results**, **Record details**, **Compare Saved Adjustments** (filled with the **Save this adjustment** button at the bottom of 3 Adjustment), and a printable record sheet (print → Save as PDF).
+Page sections: **1 Points**, **2 Pairs**, **3 Adjustment**, **Results**, **Compare Saved Adjustments** (filled with the **Save this adjustment** button at the bottom of 3 Adjustment), **Record details**, and a printable record sheet (print → Save as PDF).
+
+Layout (Dakota, Nov 2026): the sections sit in three rows of two, and all three rows share the same column edges, a narrow left column (300–380 px) and a wide right one: Points | Pairs, Adjustment | Results, Compare Saved Adjustments | Record details. Points and Pairs are always drawn the same height. Adjustment stays its own height so it can stay pinned on screen while you scroll Results. Compare Saved Adjustments shows each adjustment's name on its own line with its numbers below, so it fits the narrow column. On a narrow screen (960 px or less) everything stacks in one column, in that order.
 
 **Inputs**
 - PNEZD text/CSV (point, northing, easting, elevation, description). Other column orders can be selected.
