@@ -4,7 +4,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
 <style>
-/* Layout: a working column of three steps (points, pairs, adjustment) beside a live results panel; the field record sheet sits below and is the only thing that prints. */
+/* Layout: three rows of two panels sharing one narrow left and one wide right column (Points | Pairs, Adjustment | Results, Compare Saved Adjustments | Record details); the field record sheet sits below and is the only thing that prints. */
 :root {
   --bg: #eef0f3;
   --panel: #ffffff;
@@ -93,8 +93,15 @@ td.mono { font-family: var(--font-num); white-space: nowrap; }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
 .seg label:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
-.setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-.bench { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 18px; align-items: start; }
+/* All three rows share one set of column edges: a narrow left column and a wide right one. */
+.setup, .bench { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 18px; align-items: start; }
+/* Points and Pairs are drawn the same height; their contents stay at the top. */
+.setup.same-height { align-items: stretch; }
+.setup.same-height > .panel { align-content: start; }
+/* Compare Saved Adjustments: name on its own line, numbers below, tight enough for the narrow column. */
+.scn th, .scn td { padding-left: 4px; padding-right: 4px; }
+.scn thead th { white-space: normal; }
+.scn .scn-name td { font-weight: 500; border-bottom: none; padding-top: 10px; padding-bottom: 0; }
 .adj-panel { position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 24px); overflow-y: auto; }
 @media (max-width: 960px) { .setup, .bench { grid-template-columns: minmax(0, 1fr); } .adj-panel { position: static; max-height: none; } }
 .mode-help { min-height: 2.9em; }
@@ -198,7 +205,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
     <div class="row"><button type="button" id="resetCancel">Keep working</button><button type="button" class="danger" id="resetYes">Clear and start new</button></div>
   </div>
 
-  <div class="setup noprint">
+  <div class="setup same-height noprint">
       <!-- STEP 1 -->
       <section class="panel" aria-labelledby="h-pts">
         <h2 id="h-pts"><span class="n">1</span>Points</h2>
@@ -313,6 +320,15 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
   </div>
 
   <div class="setup noprint">
+      <section class="panel" aria-labelledby="h-scn">
+        <h2 id="h-scn">Compare Saved Adjustments</h2>
+        <div class="tbl-wrap">
+          <table class="scn">
+            <thead><tr><th class="num">Horiz RMS</th><th class="num">Horiz max</th><th class="num">Vert RMS</th><th class="num">Vert max</th><th></th></tr></thead>
+            <tbody id="scnBody"></tbody>
+          </table>
+        </div>
+      </section>
       <section class="panel" aria-labelledby="h-rec">
         <h2 id="h-rec">Record details</h2>
         <div class="two">
@@ -332,15 +348,6 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
           <button type="button" id="dlPts">Download adjusted points</button>
         </div>
         <p class="hint" id="printHint" hidden>Printing is blocked in this preview. Open the downloaded VRS Control Check file in your browser to print or save a PDF.</p>
-      </section>
-      <section class="panel" aria-labelledby="h-scn">
-        <h2 id="h-scn">Compare Saved Adjustments</h2>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr><th>Adjustment</th><th class="num">Horiz RMS</th><th class="num">Horiz max</th><th class="num">Vert RMS</th><th class="num">Vert max</th><th></th></tr></thead>
-            <tbody id="scnBody"></tbody>
-          </table>
-        </div>
       </section>
   </div>
 
@@ -907,10 +914,12 @@ function renderResults() {
 }
 function renderScenarios() {
   const { hdp, vdp } = S.fmt;
-  $("scnBody").innerHTML = S.scenarios.map((s, i) => `<tr>
-    <td>${esc(s.name)}</td><td class="num">${fmt(s.st.hRmsA, hdp)}</td><td class="num">${fmt(s.st.hMaxA, hdp)}</td><td class="num">${fmt(s.st.vRmsA, vdp)}</td><td class="num">${fmt(s.st.vMaxA, vdp)}</td>
-    <td style="white-space:nowrap"><button type="button" data-use="${i}">Use</button> <button type="button" class="ghost" data-sdel="${i}" aria-label="Remove">✕</button></td></tr>`).join("") ||
-    `<tr><td colspan="6" class="empty">Use Save this adjustment (in 3 Adjustment) to compare adjustments side by side.</td></tr>`;
+  // Each saved adjustment takes two lines: its name across the full width, then its numbers,
+  // so the table fits the narrow left column.
+  $("scnBody").innerHTML = S.scenarios.map((s, i) => `<tr class="scn-name"><td colspan="5">${esc(s.name)}</td></tr><tr>
+    <td class="num">${fmt(s.st.hRmsA, hdp)}</td><td class="num">${fmt(s.st.hMaxA, hdp)}</td><td class="num">${fmt(s.st.vRmsA, vdp)}</td><td class="num">${fmt(s.st.vMaxA, vdp)}</td>
+    <td style="white-space:nowrap"><button type="button" data-use="${i}" aria-label="Use ${esc(s.name)}">Use</button> <button type="button" class="ghost" data-sdel="${i}" aria-label="Remove ${esc(s.name)}">✕</button></td></tr>`).join("") ||
+    `<tr><td colspan="5" class="empty">Use Save this adjustment (in 3 Adjustment) to compare adjustments side by side.</td></tr>`;
 }
 function renderSheet() {
   const m = S.meta, { hdp, vdp } = S.fmt;
