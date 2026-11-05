@@ -4,7 +4,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
 <style>
-/* Layout: a working column of three steps (points, pairs, adjustment) beside a live results panel; the field record sheet sits below and is the only thing that prints. */
+/* Layout: three rows of two panels sharing one narrow left and one wide right column (Points | Pairs, Adjustment | Results, Compare Saved Adjustments | Record details); the field record sheet sits below and is the only thing that prints. */
 :root {
   --bg: #eef0f3;
   --panel: #ffffff;
@@ -918,7 +918,7 @@ function renderScenarios() {
   // so the table fits the narrow left column.
   $("scnBody").innerHTML = S.scenarios.map((s, i) => `<tr class="scn-name"><td colspan="5">${esc(s.name)}</td></tr><tr>
     <td class="num">${fmt(s.st.hRmsA, hdp)}</td><td class="num">${fmt(s.st.hMaxA, hdp)}</td><td class="num">${fmt(s.st.vRmsA, vdp)}</td><td class="num">${fmt(s.st.vMaxA, vdp)}</td>
-    <td style="white-space:nowrap"><button type="button" data-use="${i}">Use</button> <button type="button" class="ghost" data-sdel="${i}" aria-label="Remove">✕</button></td></tr>`).join("") ||
+    <td style="white-space:nowrap"><button type="button" data-use="${i}" aria-label="Use ${esc(s.name)}">Use</button> <button type="button" class="ghost" data-sdel="${i}" aria-label="Remove ${esc(s.name)}">✕</button></td></tr>`).join("") ||
     `<tr><td colspan="5" class="empty">Use Save this adjustment (in 3 Adjustment) to compare adjustments side by side.</td></tr>`;
 }
 function renderSheet() {
