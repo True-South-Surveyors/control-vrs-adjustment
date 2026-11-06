@@ -15,13 +15,8 @@ command really runs in (`git -C <folder>`, or a `cd <folder>` before it), so tha
 written out in full, with no variables such as `$env:TEMP`. If one of them
 blocks you, follow its message. Never edit or disable them unless a person explicitly asks.
 
-**When asked to "test the safety checks"** (after setting up a computer, or in a new repo): from
-`main` with no changes, run `git commit --allow-empty --dry-run -m "Safety check test"` and
-`git push --dry-run origin main`; the guard must refuse both. Then check git's own layer:
-`git config core.hooksPath` must print `.githooks`, and, with the Bash tool,
-`printf 'refs/heads/main 1111111111111111111111111111111111111111 refs/heads/main 2222222222222222222222222222222222222222\n' | sh .githooks/pre-push origin test`
-must print a BLOCKED message. Nothing is committed or sent either way. Report each result; if
-anything was not refused, stop and tell us.
+**When asked to "test the safety checks"** (after setting up a computer, or in a new repo), use the
+`test-safety-checks` skill.
 
 ## Workflow for every change
 
@@ -43,7 +38,8 @@ anything was not refused, stop and tell us.
    update, a new repo's first branch, or a repo's one-pull-request-per-sitting rule).
 4. **Build** the change. Run it or test it the way this README says, and show us it works.
    The team's shared safety checks (`.claude/hooks/guard.ps1`, `.claude/hooks/guard-tests.ps1`,
-   `.githooks/pre-push` and the template's entries in `.claude/settings.json`) are changed only in
+   `.githooks/pre-push`, the template's entries in `.claude/settings.json`, and the skills
+   `.claude/skills/sync-rules/` and `.claude/skills/test-safety-checks/`) are changed only in
    the template (see "Team rules come from the template" below), even when the problem is found in
    another repo. A repo's own checks, such as a client-name check in `tools/hooks/`, are changed in
    that repo, only when a person asks or its About section says to (for example adding an ordinary
@@ -107,7 +103,7 @@ anything was not refused, stop and tell us.
      should know.
      New commits after approval need a fresh review and a fresh comment.
 9. **Merge:** `gh pr merge --squash --delete-branch --match-head-commit <approved full sha>`, as a
-   command on its own with no quoted text (the one exception is the rules sync below, where it
+   command on its own with no quoted text (the one exception is the rules sync in the `sync-rules` skill, where it
    follows a single `cd "<clone>" &&` in Bash or `Set-Location "<clone>";` in PowerShell). The sha makes GitHub refuse the merge if anything was
    pushed after the review. A person will be asked to approve it. If the guard says the base branch
    has moved on (the other person merged first), go back to step 7.
@@ -135,88 +131,14 @@ committed, tell us immediately so we can change it. Removing it from the code is
 ## Team rules come from the template
 
 `True-South-Surveyors/repo-template` is the source of the shared rules. Change rules there first,
-never only in one repo. When asked to "push the new rules to all our repos", for each repo in
-`gh repo list True-South-Surveyors` other than the template:
-
-- **Work in a fresh clone** in a new folder under `$env:TEMP` (never inside the template, never in
-  someone's working folder, which may hold their unfinished work), from this template session.
-  Find that folder's full path once (for example `C:\Users\<name>\AppData\Local\Temp\rules-sync\<repo>`)
-  and write it out in every command, since the shell goes back to the template folder after each
-  one and the guard can't follow variables: `git -C "<clone>" ...` for git, and
-  `cd "<clone>" && ...` (Bash) or `Set-Location "<clone>"; ...` (PowerShell) for `gh` and anything
-  else. The merge is `cd "<clone>" && gh pr merge ...` (Bash) or
-  `Set-Location "<clone>"; gh pr merge ...` (PowerShell), with nothing else in the command. Right after
-  cloning, run `git -C "<clone>" config core.hooksPath .githooks`: that only happens automatically
-  when a Claude Code session starts in a folder, so without it no hooks run in the clone.
-- Follow the workflow above: one PR per repo, titled "Update team rules from template". These PRs
-  touch safety checks, so the review is **Thorough**. Before reviewing, run the tests in the clone
-  (`powershell -NoProfile -ExecutionPolicy Bypass -File "<clone>\.claude\hooks\guard-tests.ps1"`);
-  they must pass, which also checks the hand-merged `.claude/settings.json`.
-- **Someone may be working in the repo.** Run the overlap check (step 2) in each clone. If someone's
-  open PR touches files the update changes, tell us who and what, and leave that repo until we
-  agree. Their folder and branch are never touched; once the update is merged, their PR must catch
-  up with `main` (step 7) before it can merge, keeping both sides of any conflict.
-- **Copied as-is:** `.claude/hooks/guard.ps1`, `.claude/hooks/guard-tests.ps1`, `.githooks/pre-push`.
-- **Merged, keeping the repo's own additions:**
-  - `.claude/settings.json`: the template's entries, plus any the repo added.
-  - `.gitattributes`: the template's lines, plus any the repo added.
-  - `.gitignore`: add template lines it lacks; never remove the repo's lines, except that the old
-    template line `.vscode/` is replaced by the template's `.vscode/*` lines (git can't let shared
-    VS Code settings through while the whole folder is ignored).
-  - `CLAUDE.md`: everything above `## About this project` comes from the template; everything from
-    that heading to the end of the file belongs to the repo and stays exactly as it is.
-  - `README.md`: it is about the project. The only template part is the short "How we work on this
-    repo" section at the end of the template's README, which goes at the end of the repo's
-    README, replacing any older copy. Remove older copies of the template's team sections
-    ("Starting another project" through "How thorough the review is", and lines such as "This repo
-    was created from our team template"); the team guide lives only in the template's README. Keep
-    everything about the project. If the repo has no README, write a short one (what it is, where
-    its own notes are, how to run it), then that section.
-- **Never removed:** extra hooks in a repo's `.githooks/` and anything else project-specific.
+never only in one repo. To push them out ("push the new rules to all our repos") or to give an
+existing repo the template for the first time, use the `sync-rules` skill, from a session in the
+template.
 
 **A new repo made from the template** (any repo other than `True-South-Surveyors/repo-template`
 whose README is still the template's team guide and whose `## About this project` is empty; the
 template's own README stays the team guide): on its first branch, rewrite the README to be about the project,
 ending with the "How we work on this repo" section, and fill in the About section here.
-
-**First time a repo gets the template** (it has no `.claude/settings.json` from us yet), also:
-
-- **Keep its own git hooks running.** The template makes git run hooks only from `.githooks/`.
-  Before adding the template's settings, look for hooks the repo already uses: folders such as
-  `tools/hooks/` or `.husky/`, mentions in its notes or README, and `git -C "<working copy>" config
-  --get core.hooksPath` in the person's own working copy if there is one (read-only; a fresh clone
-  never has it).
-  Add a `.githooks/<hook name>` for each that calls the existing script, keep the script's Unix line
-  endings (add a `.gitattributes` line for it if needed), update any notes that say to set
-  `core.hooksPath`, and prove each hook still works in the clone, with `git -C "<clone>"` (for example a test commit it
-  should refuse, then throw that commit away; for a check that reads a private, git-ignored list,
-  put a throwaway fake list in the clone for the test). Example: pdf-viewer's job-info check in
-  `tools/hooks/`, which reads job names from the ignored `testfiles/ALIASES.md`.
-- **Keep its CLAUDE.md.** If it has no `## About this project` section, put the template part on
-  top and move the entire existing file, unchanged, under `## About this project`, with its
-  headings pushed down two levels (`#` becomes `###`) so they all sit inside that section. If there
-  is no CLAUDE.md, write a short About section pointing at the repo's own notes (for example
-  PROGRESS.md).
-- **Check its rules and notes against the template.** Read its CLAUDE.md and the notes its About
-  section points to (for example SPEC.md, NOTES.md, TODO.md, PROGRESS.md) for steps the template's
-  rules would now block or contradict (for example pm-folder-icons' release steps push straight to
-  `main`: rewrite as version bump through a PR, merge, `git switch main`, `git pull`, then
-  `git tag vX <hash of the version-bump commit>` (by its hash, in case the other person merged
-  something after it) and `git push origin vX`). Show us each conflict and the proposed rewrite before
-  committing.
-- **Its client data rules cover GitHub text too.** If the repo handles client or job data (written
-  rules, or signs such as ignore-file comments or notes about real job folders), write into its
-  About section that branch names, PR titles, PR descriptions and review comments must not contain
-  it, and how to check each one before it is pushed or posted. For pdf-viewer: use the Bash tool (Git Bash; `sh` isn't available in
-  PowerShell) from inside the person's own working copy of pdf-viewer (read-only, since only that
-  copy has the real `testfiles/ALIASES.md`) to run `tools/hooks/job-info-guard.sh message <file>`
-  on a copy of each text with leading `#` removed (`sed 's/^#*//'`), since the script skips `#`
-  lines; pass the file path in quotes with forward slashes. Use hyphens, not underscores, in branch
-  names so whole-word matching works. It counts as checked only if it exits 0 and prints nothing at
-  all; any output or a non-zero exit means it found job information or did not really check, so
-  fix the text or keep it generic (no job names, client file names or sheet titles) and say so.
-- If `.gitattributes` would change line endings of files already in the repo, say so before
-  committing.
 
 ## About this project
 
