@@ -47,7 +47,9 @@ h2 .n { font-family: var(--font-num); font-size: 12px; color: var(--accent-ink);
 .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
 @media (max-width: 960px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 .col { display: grid; gap: 18px; min-width: 0; }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
+/* Wide contents (the point list table, the paste box) scroll inside the panel instead of pushing past its edge into the next panel. */
+.panel > *, details > div { min-width: 0; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .hint { color: var(--muted); font-size: 12.5px; margin: 0; }
 .hint.warn { color: var(--warn); }
@@ -222,7 +224,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
         <p class="hint" id="ptStatus"></p>
         <details>
           <summary>Paste points instead</summary>
-          <div style="display:grid; gap:8px; margin-top:8px">
+          <div style="display:grid; grid-template-columns:minmax(0, 1fr); gap:8px; margin-top:8px">
             <textarea id="paste" rows="5" placeholder="V1,512340.020,1023455.800,812.38,VRS&#10;47005,512340.089,1023455.867,812.40,ENL"></textarea>
             <div class="row"><button type="button" id="addPaste">Add pasted points</button></div>
           </div>
