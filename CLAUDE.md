@@ -128,6 +128,28 @@ checked only if it exits 0 and prints nothing. Use a `.env` file
 (git-ignored) and keep a `.env.example` with the variable names and fake values. If a secret is ever
 committed, tell us immediately so we can change it. Removing it from the code is not enough.
 
+## Bugs, ideas and tasks
+
+Bugs, ideas and to-dos for every repo go on the team's Notion task list, not in GitHub issues, so
+we can see what needs doing across all our repos in one place. It is the "Tasks" database on the
+Notion page "Task List" (https://app.notion.com/p/c4cac42f75c449fe87fb9598d4fb37ae).
+
+- **One card per bug or idea.** Name it `<command or area> - <what>`. Set List to the closest of
+  its options (ask when none fits) and Priority if we said one. Notes is one line on what it is.
+  The page says what's wrong or wanted, the cause if known, the proposed approach and its
+  limitations, then "Next" with the steps as a checklist and "Where it stands" with dated notes
+  (PR numbers, what was found).
+- When someone says "put a note on <repo>" or "add a task", that means a card, or a dated note on
+  the open card for the same thing. First query the Tasks data source for the command or area
+  and read the open matches, so a card isn't made twice.
+- Tick Done when the work reaches the people who use it: when it is merged, or, in a repo with
+  releases, when it is released.
+- Cards follow the same rule on client and job details as GitHub text does in this repo.
+- No new GitHub issues. This rule wins over any older rule in a repo's About section that says
+  bugs or tasks are GitHub issues (that part is updated in its own PR). Issues already open stay
+  where they are until a person says to move them.
+- If Claude can't reach Notion, it says so and gives the card's text to paste in.
+
 ## Team rules come from the template
 
 `True-South-Surveyors/repo-template` is the source of the shared rules. Change rules there first,
